@@ -96,11 +96,13 @@ test('modal dialog traps focus, closes on Escape and returns focus', async ({ pa
 test('reduced motion is honoured in a real browser', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
-  await expect(page.locator('header .origin-left')).toHaveCount(0)
-  await page.locator('section[data-stage="4"]').scrollIntoViewIfNeeded()
-  // with reduced motion the final-stage graphic appears immediately (duration 0, no animation)
-  await expect(page.locator('.sticky svg').getByText('CHRONOREPLAY')).toBeVisible({ timeout: 1000 })
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await expect(page.locator('video')).toHaveCount(0) // static poster, no scrubbed footage
+  await expect(page.locator('img.tfl-media')).toBeVisible()
+  await page.locator('#enter').scrollIntoViewIfNeeded()
+  // content is fully opaque immediately: nothing waits on a scroll-linked fade
+  await expect(page.locator('#enter .tfl-chapter-inner')).toHaveCSS('opacity', '1', { timeout: 1000 })
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('/')
-  await expect(page.locator('header .origin-left')).toHaveCount(1)
+  await expect(page.locator('video')).toHaveCount(1)
 })

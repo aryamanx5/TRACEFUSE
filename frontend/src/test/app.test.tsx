@@ -33,18 +33,24 @@ function at(path: string, el: React.ReactNode, route = '*') {
 }
 
 describe('landing page', () => {
-  it('renders all five story stages and working CTAs', () => {
+  it('renders all five chapters with real destinations', () => {
     at('/', <Landing />, '/')
-    for (const k of ['01 · The signal', '02 · Fragmentation', '03 · Disconnected intelligence', '04 · Evidence fusion', '05 · The investigation room'])
-      expect(screen.getByText(k)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Start an Investigation' })).toHaveAttribute('href', '/app/new')
-    expect(screen.getByRole('link', { name: 'Open Investigation Room' })).toHaveAttribute('href', '/app')
-    expect(screen.getAllByText(/Illustrative network/).length).toBeGreaterThan(0)
+    expect(screen.getByRole('heading', { level: 1, name: /TRACEFUSE Follow the money\. Find the signal\./ })).toBeInTheDocument()
+    for (const h of ['One exploit. Hundreds of paths.', 'The clues exist. They don’t connect.', 'Connect the evidence. Not just the dots.', 'Every connection needs a reason.'])
+      expect(screen.getByRole('heading', { level: 2, name: h })).toBeInTheDocument()
+    for (const id of ['signal', 'fragmentation', 'disconnected', 'fusion', 'enter']) expect(document.getElementById(id)).not.toBeNull()
+    expect(screen.getByRole('link', { name: 'Explore the investigation' })).toHaveAttribute('href', '/app')
+    expect(screen.getByRole('link', { name: 'Enter Investigation Room' })).toHaveAttribute('href', '/app')
+    for (const l of screen.getAllByRole('link', { name: 'Investigation Room' })) expect(l).toHaveAttribute('href', '/app')
+    expect(screen.getByRole('button', { name: 'Replay the story' })).toBeInTheDocument()
+    expect(screen.getByText(/Illustrative branching path — not live transaction data/)).toBeInTheDocument()
+    expect(screen.getByText('Illustrative diagram.')).toBeInTheDocument()
   })
-  it('respects reduced motion (no animated progress bar)', () => {
+  it('respects reduced motion: poster only, no scrubbed video', () => {
     // setup.ts matchMedia reports prefers-reduced-motion: reduce
     const { container } = at('/', <Landing />, '/')
-    expect(container.querySelector('.origin-left')).toBeNull()
+    expect(container.querySelector('video')).toBeNull()
+    expect(container.querySelector('img.tfl-media')).toHaveAttribute('src', '/media/tracefuse-hero-poster.jpg')
   })
 })
 

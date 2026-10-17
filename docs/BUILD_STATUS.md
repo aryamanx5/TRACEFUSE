@@ -21,7 +21,7 @@ the remaining 5 are limited only by missing credentials (live verification), see
 
 | Area (PRD IDs) | Status | Key files | Evidence |
 |---|---|---|---|
-| LANDING-1..5 | VERIFIED | pages/Landing.tsx | vitest; Playwright landing/responsive/keyboard (real-browser reduced motion); axe 0 |
+| LANDING-1..5 | VERIFIED | pages/Landing.tsx, features/landing/* | cinematic scroll story (2026-10-18): vitest; Playwright landing (5 chapters, video scrubs fwd/back, CTA → /app, replay, media-failure fallback)/responsive/keyboard (reduced motion); axe 0 |
 | INTAKE-1..5 | VERIFIED | domain/validation.py, NewInvestigation.tsx | pytest; Playwright states; live tx-hash runs (Ethereum, OP) |
 | CHAIN-1 Blockscout (Ethereum + OP Mainnet) | VERIFIED (live) | providers/blockscout.py | live pytest `test_live_op_mainnet_investigation`; Ronin recording; live E2E |
 | CHAIN-4..11 | VERIFIED | providers/* | pytest |
@@ -38,10 +38,22 @@ the remaining 5 are limited only by missing credentials (live verification), see
 | UX-1..5 | VERIFIED (automated) | index.css, components/ui.tsx | axe 0 (dark+light), keyboard spec; see docs/ACCESSIBILITY_AUDIT.md (manual AT testing not performed) |
 | OPS-1..5 | VERIFIED | README, scripts, migrations | — |
 
+## Landing page — Phase 1 cinematic scroll story (2026-10-18, branch `claude/tracefuse-landing-page-b1b13c`)
+- Hero media: `frontend/public/media/tracefuse-hero.mp4` = the supplied Gemini clip (10 s, 1280×720) re-encoded for scrubbing
+  (H.264, keyframe every 6 frames, no audio, moov first) with Swift/AVFoundation — no ffmpeg on this machine. The original had a
+  single keyframe, which makes every seek decode from frame 0. Poster = its first frame (`tracefuse-hero-poster.png` master,
+  `.jpg` 270 KB used on the page). `reference-assets/cowboyspace.mp4` was not present; nothing was reproduced from it.
+- `useScrubVideo` fetches the clip once as a blob after first paint, maps scroll progress → `currentTime` through one eased rAF
+  loop (no overlapping seeks, sleeps off-screen / when settled), never plays. Poster-only when reduced motion or Save-Data; poster
+  stays if the media fails (`data-media="failed"`).
+- Chapters: `features/landing/chapters.ts` (ids signal · fragmentation · disconnected · fusion · enter). Diagrams are labelled
+  illustrative; chapter 03 uses public Ronin facts from `backend/data/cases/ronin-2022/labels.json`.
+- Fonts: Archivo (variable width) + JetBrains Mono via Google Fonts in `index.html`; system fallbacks if offline.
+
 ## Last successful checks (2026-10-18, finalization — branch `tracefuse-finalization`)
 backend: pytest 66 passed, 7 skipped (opt-in live; 4 of them additionally credential-gated) · ruff clean · mypy clean.
 Earlier in this pass: `TRACEFUSE_LIVE_TESTS=1` live tests — OP Mainnet investigation, OP-Stack deposit confirmed, Across deposit decoded — 3 passed.
-frontend: `npm test` 12 passed (exit 0) · oxlint 0 · build OK · Playwright `npm run e2e` **25 passed** (incl. axe dark/light, keyboard, dialog, reduced motion, responsive mobile).
+frontend (landing pass): `npm test` 12 passed · tsc/oxlint clean · build OK · Playwright `npm run e2e` **26 passed** (2026-10-18). Earlier: Playwright **25 passed** (incl. axe dark/light, keyboard, dialog, reduced motion, responsive mobile).
 Manual demo smoke (in-app browser): historical Ronin case opens, workspace renders with historical banner, exports and ChronoReplay.
 
 ## Outstanding requirements → required live check (all blocked: no credentials present in environment or backend/.env)
