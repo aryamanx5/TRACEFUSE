@@ -26,7 +26,7 @@ the remaining 5 are limited only by missing credentials (live verification), see
 | CHAIN-1 Blockscout (Ethereum + OP Mainnet) | VERIFIED (live) | providers/blockscout.py | live pytest `test_live_op_mainnet_investigation`; Ronin recording; live E2E |
 | CHAIN-4..11 | VERIFIED | providers/* | pytest |
 | CHAIN-2 Etherscan V2 · CHAIN-3 Alchemy | IMPLEMENTED, fixture-tested · BLOCKED live | providers/etherscan.py, alchemy.py | needs ETHERSCAN_API_KEY / ALCHEMY_API_KEY |
-| GRAPH-1..8 | VERIFIED | analysis/graph.py, GraphView.tsx (keyboard wallet list) | pytest; Playwright historical/keyboard |
+| GRAPH-1..8 | VERIFIED | analysis/graph.py, features/workspace/flow/* (2D fund flow + 3D network, keyboard wallet list) | pytest; vitest flow.test; Playwright flow/historical/keyboard |
 | QUANT-1..9, MATRIX-1..4, REPLAY-1..5 | VERIFIED | analysis/*, MatrixView/ChronoReplay | pytest; vitest; Playwright |
 | OSINT-2..8 | VERIFIED (GoPlus, OFAC, labels live) | intel/* | pytest; recording |
 | OSINT-1 GitHub | VERIFIED unauthenticated (issues/commits) · code search BLOCKED | intel/github.py | needs GITHUB_TOKEN |
@@ -37,6 +37,26 @@ the remaining 5 are limited only by missing credentials (live verification), see
 | STREAM-1..4, CASEBOOK-1..5, CHALLENGE-1..4, REPORT-1..4, SECURITY-1..5 | VERIFIED | — | pytest; Playwright |
 | UX-1..5 | VERIFIED (automated) | index.css, components/ui.tsx | axe 0 (dark+light), keyboard spec; see docs/ACCESSIBILITY_AUDIT.md (manual AT testing not performed) |
 | OPS-1..5 | VERIFIED | README, scripts, migrations | — |
+
+## Investigation Room — Phase 2: 2D fund flow + 3D network (2026-10-18, branch `claude/tracefuse-investigation-room`)
+- `features/workspace/flow/model.ts`: one deterministic model for both views. Columns = hop distance from the starting
+  wallet (negative = senders in); 2D rows centre-out by importance then barycentre; 3D = one disc per column with branches
+  keeping their angle. Positions depend only on graph + analyst reveals, never on the replay cursor.
+- Simplified view by default (start, flagged/service wallets, notable expansion states, largest flows, routes back to the
+  start) with explicit “+N more” placeholders per column and a status line; “Show full graph” draws everything.
+- 2D (`FlowGraph2D`, Cytoscape preset positions, taxi edges): search, fit, zoom, reset layout, expand one hop, trace path
+  (BFS downstream → upstream → undirected), isolate, hover cards, column headers; elements diffed in place (no rebuild).
+- 3D (`Network3D`, plain three.js 0.186 + OrbitControls, lazy chunk ~150 kB gz): orbit/pan/zoom, hover preview, click → Inspector,
+  trace/isolate (glow tubes), expand downstream, focus/reset camera tweens, sparse HTML labels, particles on revealed real edges,
+  reveal pulses during replay, WebGL-unavailable fallback to 2D; disabled < 768 px (2D on phones).
+- ChronoReplay: one interval per play session (cursor in a ref), fixed-height rows; views only toggle classes/opacity on ticks.
+  Playwright asserts layout version, canvas box and page height are unchanged during playback.
+- Plain-language pass: status labels (Verified transaction / Source-reported information / Unverified hypothesis), Inspector
+  (“Why this wallet was flagged”, tracing status, fan-in/out as funds coming together/splitting apart, advanced metrics folded),
+  filters, tabs (Fund flow, Transfer matrix, Lead ranking, Flow patterns), compact status strip + Export menu.
+- Optional overlay: algorithmic `coordinated_split` relationships as dotted amber “unverified pattern” edges (off by default).
+- npm registry (registry.npmjs.org) times out from this machine; `three` was installed via `--registry=https://registry.yarnpkg.com`
+  and lockfile URLs rewritten back to npmjs.org (same tarballs/integrity).
 
 ## Landing page — Phase 1 cinematic scroll story (2026-10-18, branch `claude/tracefuse-landing-page-b1b13c`)
 - Hero media: `frontend/public/media/tracefuse-hero.mp4` = the supplied Gemini clip (10 s, 1280×720) re-encoded for scrubbing
@@ -53,7 +73,7 @@ the remaining 5 are limited only by missing credentials (live verification), see
 ## Last successful checks (2026-10-18, finalization — branch `tracefuse-finalization`)
 backend: pytest 66 passed, 7 skipped (opt-in live; 4 of them additionally credential-gated) · ruff clean · mypy clean.
 Earlier in this pass: `TRACEFUSE_LIVE_TESTS=1` live tests — OP Mainnet investigation, OP-Stack deposit confirmed, Across deposit decoded — 3 passed.
-frontend (landing pass): `npm test` 12 passed · tsc/oxlint clean · build OK · Playwright `npm run e2e` **26 passed** (2026-10-18). Earlier: Playwright **25 passed** (incl. axe dark/light, keyboard, dialog, reduced motion, responsive mobile).
+frontend (investigation-room pass): `npm test` 16 passed · tsc/oxlint clean · build OK · Playwright `npm run e2e` **28 passed** (2026-10-18). Landing pass: 26 passed. Earlier: Playwright **25 passed** (incl. axe dark/light, keyboard, dialog, reduced motion, responsive mobile).
 Manual demo smoke (in-app browser): historical Ronin case opens, workspace renders with historical banner, exports and ChronoReplay.
 
 ## Outstanding requirements → required live check (all blocked: no credentials present in environment or backend/.env)

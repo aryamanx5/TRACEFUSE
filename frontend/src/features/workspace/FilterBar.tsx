@@ -2,7 +2,7 @@ import type { AssetTotal } from '../../lib/types'
 import { short } from '../../lib/format'
 import type { Filter } from './state'
 
-const KINDS = ['native', 'internal', 'erc20', 'erc721']
+const KINDS: [string, string][] = [['native', 'ETH transfers'], ['internal', 'ETH moved by contracts (internal)'], ['erc20', 'Tokens (ERC-20)'], ['erc721', 'NFTs (ERC-721)']]
 
 export default function FilterBar({ filter, setFilter, assets }: { filter: Filter; setFilter: (f: Filter) => void; assets: AssetTotal[] }) {
   const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
@@ -11,9 +11,9 @@ export default function FilterBar({ filter, setFilter, assets }: { filter: Filte
       <summary className="cursor-pointer select-none font-medium">
         Filters
         <span className="ml-2 text-xs text-faint">
-          {[filter.assets.length && `${filter.assets.length} asset(s)`, filter.kinds.length && `${filter.kinds.length} kind(s)`,
+          {[filter.assets.length && `${filter.assets.length} asset(s)`, filter.kinds.length && `${filter.kinds.length} type(s)`,
             filter.hide.length && `${filter.hide.length} hidden`, filter.minAmount && `≥ ${filter.minAmount}`, filter.includeZero && 'incl. zero-value calls',
-            !filter.includeUnrecognised && 'canonical tokens only'].filter(Boolean).join(' · ') || 'none'}
+            !filter.includeUnrecognised && 'well-known tokens only'].filter(Boolean).join(' · ') || 'none'}
         </span>
       </summary>
       <div className="mt-3 grid gap-4 md:grid-cols-4">
@@ -23,23 +23,23 @@ export default function FilterBar({ filter, setFilter, assets }: { filter: Filte
             {assets.slice(0, 30).map((a) => (
               <label key={a.asset_key} className="flex items-center gap-2">
                 <input type="checkbox" checked={filter.assets.includes(a.asset_key)} onChange={() => setFilter({ ...filter, assets: toggle(filter.assets, a.asset_key) })} />
-                {a.symbol} {!a.recognised && <span className="text-[10px] text-hypo">non-canonical</span>}
+                {a.symbol} {!a.recognised && <span className="text-[10px] text-hypo">unverified token</span>}
                 <span className="text-xs text-faint">({a.count})</span>
               </label>
             ))}
           </div>
         </fieldset>
         <fieldset>
-          <legend className="tf-label">Transfer kinds</legend>
-          {KINDS.map((k) => (
+          <legend className="tf-label">Transfer types</legend>
+          {KINDS.map(([k, label]) => (
             <label key={k} className="flex items-center gap-2">
-              <input type="checkbox" checked={filter.kinds.includes(k)} onChange={() => setFilter({ ...filter, kinds: toggle(filter.kinds, k) })} /> {k}
+              <input type="checkbox" checked={filter.kinds.includes(k)} onChange={() => setFilter({ ...filter, kinds: toggle(filter.kinds, k) })} /> {label}
             </label>
           ))}
         </fieldset>
         <div className="space-y-2">
           <label className="flex items-center gap-2"><input type="checkbox" checked={filter.includeZero} onChange={(e) => setFilter({ ...filter, includeZero: e.target.checked })} /> Show zero-value contract calls</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={!filter.includeUnrecognised} onChange={(e) => setFilter({ ...filter, includeUnrecognised: !e.target.checked })} /> Canonical tokens only (hide possible spam)</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={!filter.includeUnrecognised} onChange={(e) => setFilter({ ...filter, includeUnrecognised: !e.target.checked })} /> Only well-known tokens (hide possible spam)</label>
           <div>
             <label htmlFor="minamt" className="tf-label">Minimum amount (asset units)</label>
             <input id="minamt" className="tf-input" inputMode="decimal" value={filter.minAmount} onChange={(e) => setFilter({ ...filter, minAmount: e.target.value.replace(/[^0-9.]/g, '') })} />
@@ -47,7 +47,7 @@ export default function FilterBar({ filter, setFilter, assets }: { filter: Filte
         </div>
         <div>
           <p className="tf-label">Hidden addresses</p>
-          {filter.hide.length === 0 && <p className="text-xs text-faint">Hide nodes from the graph inspector.</p>}
+          {filter.hide.length === 0 && <p className="text-xs text-faint">Wallets you hide from the fund flow appear here.</p>}
           <ul className="space-y-1">
             {filter.hide.map((h) => (
               <li key={h} className="flex items-center justify-between gap-2"><span className="mono">{short(h)}</span>

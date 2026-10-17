@@ -20,7 +20,7 @@ export default function CrossChainView({ invId, onSelect }: { invId: string; onS
         <strong className="text-hypo">candidate</strong> = heuristic match (never a confirmed transfer) · <strong>unresolved</strong> = no defensible link.
       </p>
       <section>
-        <h3 className="mb-2 font-semibold">Bridge interactions ({data?.links.length ?? 0})</h3>
+        <h3 className="mb-2 font-semibold">Possible cross-chain connections ({data?.links.length ?? 0})</h3>
         {data && data.links.length === 0 && <Empty title="No value-bearing transfers into known bridge contracts in scope" />}
         <div className="space-y-2">
           {data?.links.map((l) => (
@@ -58,7 +58,7 @@ export default function CrossChainView({ invId, onSelect }: { invId: string; onS
         </div>
       </section>
       <section>
-        <h3 className="mb-2 font-semibold">Privacy-protocol blind spots ({data?.privacy_gaps.length ?? 0})</h3>
+        <h3 className="mb-2 font-semibold">Where the trail goes dark: mixers ({data?.privacy_gaps.length ?? 0})</h3>
         {data && data.privacy_gaps.length === 0 && <Empty title="No deposits into labelled mixers in scope" />}
         {data?.privacy_gaps.map((g) => (
           <article key={g.address} className="mb-2 rounded-lg border border-intel/40 p-3 text-sm">

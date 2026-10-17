@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { api, qs } from '../../lib/api'
 import { useApi } from '../../lib/hooks'
 import type { CrossChainLink, Evidence, FusionRelationship, Label, PrivacyGap, Score, Transfer } from '../../lib/types'
-import { ORIGIN_LABEL, STATUS_LABEL, fmtAmount, fmtDuration, fmtTime, short } from '../../lib/format'
+import { EXPANSION_LABEL, ORIGIN_LABEL, STATUS_LABEL, fmtAmount, fmtDuration, fmtTime, short } from '../../lib/format'
 import { Addr, Copy, ErrorBox, ExtLink, Spinner, StatusPill } from '../../components/ui'
 import { ScoreBreakdown } from './ScoresView'
 import { filterParams, type Filter, type Selection } from './state'
@@ -19,20 +19,24 @@ interface Props {
   onCaseChanged: (msg: string) => void
 }
 
+const KIND_TITLE: Record<NonNullable<Selection>['kind'], string> = {
+  node: 'Wallet', edge: 'Transfers between two wallets', transfers: 'Transactions', evidence: 'Evidence', relationship: 'Relationship',
+}
+
 export default function Inspector(p: Props) {
   const s = p.selection
   if (!s) {
     return (
       <div className="p-4 text-sm text-dim">
         <p className="mb-2 font-medium text-ink">Inspector</p>
-        Select a wallet, edge, matrix cell, evidence record or relationship to see its exact evidence, provenance and caveats.
+        Click a wallet or a transfer in the fund flow (or a row in any other view) to see what moved, when, and the evidence behind it — with every original source linked.
       </div>
     )
   }
   return (
     <div className="space-y-3 p-3 text-sm">
       <div className="flex items-center justify-between">
-        <p className="text-xs tracking-wide text-faint uppercase">{s.kind === 'transfers' ? 'Transactions' : s.kind}</p>
+        <p className="text-xs tracking-wide text-faint uppercase">{KIND_TITLE[s.kind]}</p>
         <button className="text-xs text-dim hover:text-ink" onClick={() => p.onSelect(null)} aria-label="Close inspector">✕ close</button>
       </div>
       {s.kind === 'node' && <NodePanel {...p} address={s.address} />}
@@ -43,6 +47,8 @@ export default function Inspector(p: Props) {
     </div>
   )
 }
+
+const RISK_CATEGORIES = ['sanctioned', 'exploit', 'exploiter', 'blocked', 'phishing', 'hack', 'heist', 'stolen']
 
 interface NodeDetail {
   address: string
@@ -88,12 +94,14 @@ function NodePanel({ invId, caseId, filter, address, onSelect, onHide, onCaseCha
     <>
       <div>
         <p className="mono break-hash text-ink"><span data-testid="selected-address">{data.address}</span><Copy text={data.address} /></p>
-        <p className="text-xs text-faint">{data.meta.is_contract ? 'Contract' : data.meta.is_contract === false ? 'Externally owned account' : 'Type unknown'} · {data.chain} · <ExtLink href={data.explorer_url}>explorer</ExtLink></p>
-        <p className="text-xs text-faint">Expansion: {data.meta.expansion_status}{data.meta.note ? ` — ${data.meta.note}` : ''}</p>
+        <p className="text-xs text-faint">{data.meta.is_contract ? 'Contract' : data.meta.is_contract === false ? 'Wallet (externally owned account)' : 'Type unknown'} · {data.chain} · <ExtLink href={data.explorer_url}>explorer</ExtLink></p>
+        <p className="text-xs text-faint">Tracing status: {EXPANSION_LABEL[data.meta.expansion_status ?? ''] ?? data.meta.expansion_status}{data.meta.note ? ` — ${data.meta.note}` : ''}</p>
       </div>
       {data.meta.labels && data.meta.labels.length > 0 && (
         <div>
-          <p className="tf-label">Labels (source assertions)</p>
+          <p className="tf-label" title="Labels come from outside sources. They are source-reported information, not proof of identity.">
+            {data.meta.labels.some((l) => RISK_CATEGORIES.includes(l.category ?? '')) ? 'Why this wallet was flagged' : 'Source-reported labels'}
+          </p>
           <ul className="space-y-1">{data.meta.labels.map((l, i) => (
             <li key={i} className="text-xs"><span className="tf-badge status-external_assertion mr-1">{l.category ?? 'label'}</span>{l.label}
               <span className="text-faint"> — {l.source_url ? <ExtLink href={l.source_url}>{l.source}</ExtLink> : l.source}</span></li>))}
@@ -101,13 +109,29 @@ function NodePanel({ invId, caseId, filter, address, onSelect, onHide, onCaseCha
         </div>
       )}
       {m && (
-        <div className="grid grid-cols-3 gap-1 text-xs">
-          {[['hop fwd', m.hop.forward], ['hop back', m.hop.backward], ['hop any', m.hop.undirected], ['in', m.in_count], ['out', m.out_count], ['fan-in', m.fan_in],
-            ['fan-out', m.fan_out], ['dwell', fmtDuration(m.median_dwell_seconds as number | null)], ['pass-thru', m.pass_through_ratio ?? '—'],
-            ['pagerank', m.pagerank ?? '—'], ['between.', m.betweenness ?? '—'], ['tx/day', m.frequency_per_day ?? '—']].map(([k, v]) => (
-            <div key={String(k)} className="rounded border border-line p-1"><p className="text-faint">{String(k)}</p><p className="mono">{v === null || v === undefined ? '—' : String(v)}</p></div>
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-1 text-xs">
+            {([
+              ['Steps from start', m.hop.forward ?? m.hop.backward ?? m.hop.undirected, 'Transfers between the starting wallet and this one'],
+              ['Transfers in / out', `${m.in_count ?? '—'} / ${m.out_count ?? '—'}`, 'Number of observed transfers received and sent'],
+              ['Funds coming together', m.fan_in, 'Distinct wallets that sent funds here (fan-in)'],
+              ['Funds splitting apart', m.fan_out, 'Distinct wallets this wallet sent funds to (fan-out)'],
+              ['Typical holding time', fmtDuration(m.median_dwell_seconds as number | null), 'Median time between receiving and sending on funds (dwell)'],
+              ['Pass-through share', m.pass_through_ratio ?? '—', 'Share of received value that was sent on (pass-through ratio)'],
+            ] as [string, unknown, string][]).map(([k, v, help]) => (
+              <div key={k} className="rounded border border-line p-1" title={help}><p className="text-faint">{k}</p><p className="mono">{v === null || v === undefined ? '—' : String(v)}</p></div>
+            ))}
+          </div>
+          <details className="text-xs">
+            <summary className="cursor-pointer text-dim">Advanced network metrics</summary>
+            <div className="mt-1 grid grid-cols-3 gap-1">
+              {[['hop forward', m.hop.forward], ['hop backward', m.hop.backward], ['hop any direction', m.hop.undirected], ['pagerank', m.pagerank ?? '—'],
+                ['betweenness', m.betweenness ?? '—'], ['transfers / day', m.frequency_per_day ?? '—']].map(([k, v]) => (
+                <div key={String(k)} className="rounded border border-line p-1"><p className="text-faint">{String(k)}</p><p className="mono">{v === null || v === undefined ? '—' : String(v)}</p></div>
+              ))}
+            </div>
+          </details>
+        </>
       )}
       {m?.totals?.length > 0 && (
         <table className="tf-table"><thead><tr><th>Asset</th><th>In</th><th>Out</th></tr></thead>
@@ -115,7 +139,9 @@ function NodePanel({ invId, caseId, filter, address, onSelect, onHide, onCaseCha
       )}
       {data.score && (
         <details open={data.score.category === 'candidate'}>
-          <summary className="cursor-pointer font-medium">Heuristic score: {data.score.score.toFixed(1)} ({data.score.band}, {data.score.category})</summary>
+          <summary className="cursor-pointer font-medium" title="A ranking heuristic to prioritise review. It is not a probability and does not identify anyone.">
+            Lead score (heuristic, not a probability): {data.score.score.toFixed(1)} · {data.score.band}
+          </summary>
           <ScoreBreakdown signals={data.score.signals} />
           {data.score.caps_applied.map((c) => <p key={c} className="text-xs text-hypo">{c}</p>)}
         </details>

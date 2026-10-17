@@ -37,14 +37,14 @@ export default function MetricsView({ invId, filter, assets, timeline, onSelect 
         ))}
       </div>
       <section>
-        <h3 className="mb-1 text-sm font-semibold">Per-asset totals (exact; never summed across assets)</h3>
+        <h3 className="mb-1 text-sm font-semibold">Totals per asset (exact — different assets are never added together)</h3>
         <table className="tf-table"><thead><tr><th>Asset</th><th>Transfers</th><th>Sum of transfers</th><th>Canonical</th></tr></thead>
           <tbody>{s.assets.slice(0, 15).map((a) => <tr key={a.asset_key}><td>{a.symbol}</td><td>{a.count}</td><td className="mono">{fmtAmount(a.amount)}</td><td>{a.recognised ? 'yes' : <span className="text-hypo">no — possible spam</span>}</td></tr>)}</tbody></table>
       </section>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="tf-panel p-3">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Amount distribution (log₁₀ bins)</h3>
+            <h3 className="text-sm font-semibold">How large the transfers were (amount ranges)</h3>
             <select className="tf-select w-auto py-1 text-xs" value={asset} onChange={(e) => setAsset(e.target.value)} aria-label="Asset for distribution">
               {assets.map((a) => <option key={a.asset_key} value={a.asset_key}>{a.symbol}</option>)}
             </select>
@@ -63,7 +63,7 @@ export default function MetricsView({ invId, filter, assets, timeline, onSelect 
           ) : <p className="text-sm text-dim">No value-bearing transfers of this asset in the filter.</p>}
         </section>
         <section className="tf-panel p-3">
-          <h3 className="mb-2 text-sm font-semibold">Activity over time (transfers per bucket)</h3>
+          <h3 className="mb-2 text-sm font-semibold">Activity over time (transfers per period)</h3>
           {act.length ? (
             <div className="h-48" role="img" aria-label="Transfers over time">
               <ResponsiveContainer><BarChart data={act}><CartesianGrid stroke="var(--line)" vertical={false} />

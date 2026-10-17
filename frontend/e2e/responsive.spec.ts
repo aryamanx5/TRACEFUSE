@@ -20,6 +20,10 @@ test('landing, app shell and workspace fit the viewport', async ({ page }) => {
   }
   await openHistoricalCase(page)
   await noHorizontalOverflow(page)
+  // phones get the 2D fund flow; the 3D network needs a wider screen
+  const narrow = (page.viewportSize()?.width ?? 1280) < 768
+  await expect(page.getByTestId('flow-2d')).toBeVisible()
+  expect(await page.getByRole('button', { name: '3D Network' }).isDisabled()).toBe(narrow)
   await page.getByRole('tab', { name: 'Matrix' }).click()
   await expect(page.getByRole('grid')).toBeVisible()
   await noHorizontalOverflow(page) // the matrix scrolls inside its own container

@@ -30,10 +30,29 @@ export const bandColor = (band?: string | null) =>
   band === 'high' ? 'var(--danger)' : band === 'elevated' ? 'var(--hypo)' : band === 'moderate' ? 'var(--intel)' : 'var(--text-faint)'
 
 export const STATUS_LABEL: Record<string, string> = {
-  verified_onchain: 'Verified on-chain',
-  external_assertion: 'External assertion',
-  algorithmic_inference: 'Algorithmic inference',
+  verified_onchain: 'Verified transaction',
+  external_assertion: 'Source-reported information',
+  algorithmic_inference: 'Unverified hypothesis',
   analyst_hypothesis: 'Analyst hypothesis',
+}
+
+/** One-line explanations for the evidence statuses (shown as tooltips). */
+export const STATUS_HELP: Record<string, string> = {
+  verified_onchain: 'Recorded on the blockchain and retrieved from a provider: an observed fact.',
+  external_assertion: 'Stated by an outside source (sanctions list, explorer label, report). Shown with its source; not proof by itself.',
+  algorithmic_inference: 'A pattern detected by TRACEFUSE. Unconfirmed: treat as a lead, not a finding.',
+  analyst_hypothesis: 'Recorded by an analyst in this case. Unconfirmed until supported by evidence.',
+}
+
+/** Plain-language description of how far a wallet was followed. */
+export const EXPANSION_LABEL: Record<string, string> = {
+  seed: 'Starting wallet',
+  expanded: 'Followed: its transfers were traced',
+  not_expanded: 'Not followed further (outside the hop or branch limits)',
+  branch_pruned: 'Partly followed: branch limit reached',
+  terminal_service: 'Stopped at a service (exchange, bridge or mixer)',
+  depth_limit: 'Stopped at the hop limit',
+  provider_error: 'Data provider error: may be incomplete',
 }
 
 export const ORIGIN_LABEL: Record<string, string> = {

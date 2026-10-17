@@ -7,7 +7,7 @@ import { fmtTime, ORIGIN_LABEL, short } from '../lib/format'
 import { ErrorBox, Spinner, Tabs, Toast } from '../components/ui'
 import ProgressPanel from '../features/workspace/ProgressPanel'
 import FilterBar from '../features/workspace/FilterBar'
-import GraphView from '../features/workspace/GraphView'
+import FlowWorkbench, { type ViewMode } from '../features/workspace/flow/FlowWorkbench'
 import MatrixView from '../features/workspace/MatrixView'
 import FusionView from '../features/workspace/FusionView'
 import ScoresView from '../features/workspace/ScoresView'
@@ -25,6 +25,7 @@ interface PersistedUi {
   tab?: TabId
   filter?: Filter
   selected?: string | null
+  view?: ViewMode
 }
 
 export default function Workspace() {
@@ -59,6 +60,7 @@ function WorkspaceBody({ id, inv, events, refresh, caseId, caseData, initial }: 
   const [at, setAt] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [fusionKey, setFusionKey] = useState(0)
+  const [view, setView] = useState<ViewMode>(() => initial?.view ?? '2d')
 
   // persist UI state to the case (debounced; skips the initial render, which only reflects stored state)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -71,9 +73,9 @@ function WorkspaceBody({ id, inv, events, refresh, caseId, caseData, initial }: 
     if (!caseId) return
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      void api(`/api/cases/${caseId}`, { method: 'PATCH', json: { ui_state: { investigation_id: id, tab, filter, selected: selection?.kind === 'node' ? selection.address : null } } }).catch(() => undefined)
+      void api(`/api/cases/${caseId}`, { method: 'PATCH', json: { ui_state: { investigation_id: id, tab, filter, view, selected: selection?.kind === 'node' ? selection.address : null } } }).catch(() => undefined)
     }, 800)
-  }, [tab, filter, selection, caseId, id])
+  }, [tab, filter, selection, caseId, id, view])
 
   const fq = qs(filterParams(filter))
   const graph = useApi<GraphResponse>(done ? `/api/investigations/${id}/graph${fq}` : null)
@@ -95,49 +97,35 @@ function WorkspaceBody({ id, inv, events, refresh, caseId, caseData, initial }: 
     setFusionKey((k) => k + 1)
   }, [caseData])
 
-  const historical = inv.data_origin === 'historical_case'
   return (
     <div className="flex flex-col gap-3">
-      <header className="flex flex-wrap items-start justify-between gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
           <p className="text-xs text-faint">
             {caseId && <><Link to={`/app/cases/${caseId}`} className="text-signal2 hover:underline">{caseData.data?.title ?? 'Case'}</Link> · </>}
             Investigation {inv.id}
           </p>
-          <h1 className="mono text-lg break-all">{inv.seed_value}</h1>
-          <div className="mt-1 flex flex-wrap gap-2 text-xs">
-            <span className="tf-badge">{inv.seed_kind === 'tx_hash' ? 'transaction' : 'address'}</span>
-            <span className="tf-badge">{inv.chain}</span>
-            <span className="tf-badge">via {inv.provider ?? '…'}</span>
-            <span className={`tf-badge ${historical ? 'text-hypo' : 'text-signal'}`}>{ORIGIN_LABEL[inv.data_origin] ?? inv.data_origin}</span>
-            <span className={`tf-badge ${inv.status === 'failed' ? 'text-danger' : inv.status === 'partial' ? 'text-hypo' : inv.status === 'completed' ? 'text-ok' : ''}`}>{inv.status}</span>
-            <span className="tf-badge">{inv.config.direction} · {inv.config.max_hops} hops · {inv.config.max_branching} branches</span>
-            {inv.finished_at && <span className="text-faint">finished {fmtTime(inv.finished_at)}</span>}
-          </div>
+          <h1 className="flex flex-wrap items-baseline gap-x-2 text-lg">
+            <span className="font-semibold">{inv.seed_kind === 'tx_hash' ? 'Transaction' : 'Wallet'}</span>
+            <span className="mono break-all text-base text-dim">{inv.seed_value}</span>
+          </h1>
         </div>
         {done && inv.status !== 'failed' && (
-          <div className="flex flex-wrap gap-2" aria-label="Exports">
-            <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/report.html`)} target="_blank" rel="noopener noreferrer">View report</a>
-            <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/report.html?download=true`)}>HTML</a>
-            <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/report.json`)}>JSON</a>
-            <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/export/transfers.csv`)}>Transfers CSV</a>
-            <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/export/scores.csv`)}>Scores CSV</a>
-            <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/export/evidence.csv`)}>Evidence CSV</a>
-          </div>
+          <details className="relative" aria-label="Exports">
+            <summary className="tf-btn cursor-pointer list-none">Export ▾</summary>
+            <div className="absolute right-0 z-30 mt-1 flex w-52 flex-col gap-1 rounded-md border border-linestrong bg-elev p-2 shadow-lg">
+              <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/report.html`)} target="_blank" rel="noopener noreferrer">View report</a>
+              <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/report.html?download=true`)}>HTML</a>
+              <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/report.json`)}>JSON</a>
+              <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/export/transfers.csv`)}>Transfers CSV</a>
+              <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/export/scores.csv`)}>Scores CSV</a>
+              <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/export/evidence.csv`)}>Evidence CSV</a>
+            </div>
+          </details>
         )}
       </header>
+      <StatusStrip inv={inv} historical={inv.data_origin === 'historical_case'} />
 
-      {historical && (
-        <p className="rounded-md border border-hypo/40 bg-hypo/10 p-2 text-xs" role="note">
-          Historical case: records are <strong>recorded real provider responses</strong> replayed through the live pipeline — not a live query. Retrieval timestamps show when they were recorded.
-        </p>
-      )}
-      {done && inv.warnings.length > 0 && (
-        <details className="rounded-md border border-hypo/40 p-2 text-xs">
-          <summary className="cursor-pointer text-hypo">{inv.status === 'partial' ? 'Partial result' : 'Warnings'} — {inv.warnings.length} warning(s)</summary>
-          <ul className="mt-1 list-disc pl-5 text-dim">{inv.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
-        </details>
-      )}
       {inv.status === 'failed' && <ErrorBox error={new Error(inv.error ?? 'Investigation failed')} onRetry={inv.data_origin === 'live' ? () => void api(`/api/investigations/${inv.id}/retry`, { method: 'POST' }).then((r) => { window.location.assign(`/app/investigations/${(r as { id: string }).id}`) }) : undefined} />}
 
       {(!done || inv.status === 'failed') && <ProgressPanel inv={inv} events={events} onCancel={() => void api(`/api/investigations/${inv.id}/cancel`, { method: 'POST' }).then(refresh)} />}
@@ -147,21 +135,22 @@ function WorkspaceBody({ id, inv, events, refresh, caseId, caseData, initial }: 
           <FilterBar filter={filter} setFilter={setFilter} assets={assets} />
           <ChronoReplay invId={inv.id} timeline={timeline.data} filter={filter} setFilter={setFilter} at={at} setAt={setAt}
             onSelectTransfer={(tid) => setSelection({ kind: 'transfers', ids: [tid], title: 'Replay transfer' })} />
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <div className="tf-panel flex min-h-[620px] flex-col overflow-hidden">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="tf-panel flex min-h-[calc(100vh-15rem)] flex-col overflow-hidden">
               <Tabs label="Analysis views" value={tab} onChange={setTab} tabs={[
-                { id: 'graph', label: 'Wallet graph', count: graph.data?.nodes.length },
-                { id: 'matrix', label: 'Matrix' },
+                { id: 'graph', label: 'Fund flow', count: graph.data?.nodes.length },
+                { id: 'matrix', label: 'Transfer matrix' },
                 { id: 'fusion', label: 'Evidence fusion' },
-                { id: 'scores', label: 'Ranking' },
+                { id: 'scores', label: 'Lead ranking' },
                 { id: 'evidence', label: 'Evidence' },
                 { id: 'crosschain', label: 'Cross-chain' },
-                { id: 'metrics', label: 'Metrics' },
+                { id: 'metrics', label: 'Flow patterns' },
               ]} />
               <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="min-h-0 flex-1">
                 {tab === 'graph' && (graph.error ? <ErrorBox error={graph.error} onRetry={graph.reload} /> : graph.data ? (
-                  graph.data.stats.transfers > 0 ? <GraphView graph={graph.data} selection={selection} onSelect={onSelect} visibleUntil={at} onHide={onHide} />
-                    : <p className="p-4 text-dim">No transfers match the current filter.</p>) : <div className="p-4"><Spinner /></div>)}
+                  graph.data.stats.transfers > 0 ? <FlowWorkbench invId={inv.id} graph={graph.data} filter={filter} selection={selection} onSelect={onSelect}
+                    onHide={onHide} visibleUntil={at} mode={view} onMode={setView} />
+                    : <p className="p-4 text-dim">No transfers match the current filter.</p>) : <div className="p-4"><Spinner label="Loading fund flow" /></div>)}
                 {tab === 'matrix' && <MatrixView invId={inv.id} filter={filter} assets={assets} selection={selection} onSelect={onSelect} />}
                 {tab === 'fusion' && <FusionView invId={inv.id} filter={filter} onSelect={onSelect} reloadKey={fusionKey} />}
                 {tab === 'scores' && <ScoresView invId={inv.id} filter={filter} onSelect={onSelect} selection={selection} />}
@@ -189,4 +178,31 @@ function announce(s: Selection): string {
   if (s.kind === 'transfers') return `Inspector shows ${s.ids.length} transfer(s): ${s.title}`
   if (s.kind === 'evidence') return `Inspector shows evidence: ${s.evidence.title}`
   return `Inspector shows relationship: ${s.rel.type.replace(/_/g, ' ')}`
+}
+
+function StatusStrip({ inv, historical }: { inv: Investigation; historical: boolean }) {
+  const dir = inv.config.direction === 'forward' ? 'Following funds out' : inv.config.direction === 'backward' ? 'Following funds in' : 'Following funds both ways'
+  const state = inv.status === 'completed' ? 'Analysis complete' : inv.status === 'partial' ? 'Partial result' : inv.status === 'failed' ? 'Failed' : inv.status === 'cancelled' ? 'Cancelled' : 'Analysing…'
+  const tone = inv.status === 'completed' ? 'bg-ok' : inv.status === 'partial' ? 'bg-hypo' : inv.status === 'failed' ? 'bg-danger' : 'bg-signal'
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-line bg-panel px-3 py-1.5 text-xs" role="group" aria-label="Investigation status">
+      <span className="flex items-center gap-1.5"><span className={`inline-block h-2 w-2 rounded-full ${tone}`} aria-hidden /><strong>{state}</strong>
+        </span>
+      {inv.warnings.length > 0 && (
+        <details className="relative">
+          <summary className="cursor-pointer text-hypo">{inv.warnings.length} warning{inv.warnings.length === 1 ? '' : 's'} ▾</summary>
+          <ul className="absolute left-0 z-30 mt-1 w-[min(36rem,80vw)] list-disc space-y-1 rounded-md border border-hypo/40 bg-elev p-3 pl-6 text-dim shadow-lg">
+            {inv.warnings.map((w) => <li key={w}>{w}</li>)}
+          </ul>
+        </details>
+      )}
+      <span><span className="text-faint">Chain</span> {inv.chain}</span>
+      <span title={historical ? 'Recorded real provider responses replayed through the live pipeline — not a live query' : undefined}>
+        <span className="text-faint">Data</span> {historical ? <><span className="text-hypo">Historical case (recorded)</span><span className="text-dim"> — recorded real provider responses, replayed</span></> : ORIGIN_LABEL[inv.data_origin] ?? inv.data_origin}
+        {inv.provider && <span className="text-faint"> via {inv.provider}</span>}
+      </span>
+      <span><span className="text-faint">Scope</span> {dir} · up to {inv.config.max_hops} hops · {inv.config.max_branching} branches per wallet</span>
+      {inv.finished_at && <span><span className="text-faint">Finished</span> {fmtTime(inv.finished_at)}</span>}
+    </div>
+  )
 }

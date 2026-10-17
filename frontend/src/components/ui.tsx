@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import type { AssertionStatus } from '../lib/types'
-import { STATUS_LABEL, safeHref, short } from '../lib/format'
+import { STATUS_HELP, STATUS_LABEL, safeHref, short } from '../lib/format'
 import { ApiError } from '../lib/api'
 
 export function Spinner({ label = 'Loading' }: { label?: string }) {
@@ -51,7 +51,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
 }
 
 export function StatusPill({ status }: { status: AssertionStatus }) {
-  return <span className={`tf-badge status-${status}`}>{STATUS_LABEL[status] ?? status}</span>
+  return <span className={`tf-badge status-${status}`} title={STATUS_HELP[status]}>{STATUS_LABEL[status] ?? status}</span>
 }
 
 export function Addr({ a, n = 6, onClick }: { a?: string | null; n?: number; onClick?: () => void }) {
@@ -156,7 +156,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
     refs.current[t.id]?.focus()
   }
   return (
-    <div role="tablist" aria-label={label} className="flex flex-wrap gap-1 border-b border-line">
+    <div role="tablist" aria-label={label} className="flex gap-0.5 overflow-x-auto border-b border-line">
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -178,7 +178,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
               go(keys[e.key])
             }
           }}
-          className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${value === t.id ? 'border-signal text-ink' : 'border-transparent text-dim hover:text-ink'}`}
+          className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-2.5 py-2 text-[13px] font-medium ${value === t.id ? 'border-signal text-ink' : 'border-transparent text-dim hover:text-ink'}`}
         >
           {t.label}
           {t.count !== undefined && <span className="ml-1.5 text-xs text-faint">{t.count}</span>}

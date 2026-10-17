@@ -8,16 +8,16 @@ test('live investigation with providers offline fails honestly and retry is real
   await page.getByRole('button', { name: 'Start investigation' }).click()
   await page.waitForURL(/\/app\/investigations\/inv_/)
   const firstId = page.url()
-  await expect(page.locator('header').getByText('failed', { exact: true })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('group', { name: 'Investigation status' }).getByText('Failed', { exact: true })).toBeVisible({ timeout: 30_000 })
   const alert = page.getByRole('alert')
   await expect(alert).toContainText(/offline/i)
   await expect(page.getByText('Backend progress')).toBeVisible()
   await expect(page.getByText(/provider failure/)).toBeVisible()
   // no fabricated data: the failed run exposes no analysis tabs
-  await expect(page.getByRole('tab', { name: /Wallet graph/ })).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: /Fund flow/ })).toHaveCount(0)
   await alert.getByRole('button', { name: 'Retry' }).click()
   await expect(page).not.toHaveURL(firstId)
-  await expect(page.locator('header').getByText('failed', { exact: true })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('group', { name: 'Investigation status' }).getByText('Failed', { exact: true })).toBeVisible({ timeout: 30_000 })
 })
 
 test('validation and unavailable providers are explained', async ({ page }) => {
