@@ -1,0 +1,431 @@
+TRACEFUSE — UNIFIED MASTER PRD, RESEARCH, IMPLEMENTATION & SELF-CORRECTION PROMPT
+
+ROLE AND MISSION
+
+You are Claude Code acting as a principal product architect, senior full-stack engineer, blockchain-forensics engineer, quantitative analyst, interaction designer, application-security engineer, and independent QA reviewer.
+
+Build TRACEFUSE: THE INTELLIGENCE FUSION LAB — a polished, deeply interactive, technically credible blockchain-forensics and OSINT investigation platform for a hackathon problem statement called “Ghost Attacks.” The scenario involves stolen crypto assets being split among wallets, routed through bridges, and potentially obscured by privacy infrastructure. Investigators need to fuse real blockchain transactions with attributable public-source intelligence, then trace and rank suspicious relationships with transparent evidence.
+
+This is not a concept demo, static dashboard, landing page mock-up, or collection of disconnected screens. Deliver a working application. Real provider integrations, persistent case management, actual graph analysis, functional interactions, validation, tests, accessible UI, useful errors, and report exports are required. Seeded historical data is allowed only as a clearly labelled, reproducible fallback and must pass through the same analysis pipeline wherever practical.
+
+Operate autonomously. Do not stop after writing a plan, PRD, UI scaffold, or partial feature. Research, document, implement, test, review, fix, and repeat until every feasible acceptance criterion is implemented and verified. Do not ask the user routine questions that can be resolved by inspecting the repository, official documentation, or making a reasonable documented decision. Never invent successful API responses, claim tests passed without running them, or declare completion when mandatory features are missing.
+
+PRODUCT PRINCIPLE
+
+Every transaction leaves evidence. Every clue needs a source. Every inferred connection must explain why it exists.
+
+TRACEFUSE’s differentiation is the combination of:
+1. Evidence Fusion Graph connecting wallet/transaction activity with public-source intelligence.
+2. ChronoReplay, a time-controlled replay of actual transaction activity.
+3. Matrix Mode, a selectable directed transaction matrix and time-window analytics view.
+4. Explainable and auditable quantitative rankings that separate observed facts from hypotheses.
+5. Cross-chain candidate tracing backed by documented bridge events where possible, with uncertainty made explicit.
+6. A memorable scrollytelling landing page that introduces the investigation problem and leads into the genuinely working application.
+7. A persistent Investigation Casebook and evidence-rich downloadable reports.
+
+IMPORTANT EXECUTION RULE
+
+Run the entire process in this same assignment. First inspect and research; then write the specification and project memory; then implement the complete application; then repeatedly test and repair it. Do not stop to ask the user to approve the PRD. Treat all mandatory requirements below as current scope, not future enhancements. Sequence them by dependency and risk, but do not intentionally defer an item as “Phase 2,” “coming soon,” or “future work.”
+
+============================================================
+PART 1 — ENVIRONMENT INSPECTION AND REFERENCE RESEARCH
+============================================================
+
+1. Inspect the existing working directory before changing anything. Read the repository tree, package manifests, source files, current instructions, .git status, tests, environment templates, and deployment configuration where present. Identify the actual framework and working features. Preserve unrelated user work and existing changes. Never reset, delete, or overwrite unrelated work without a clear necessity.
+
+2. If no application exists, create a clean maintainable architecture. If an application exists, adapt it based on the real code instead of blindly replacing it.
+
+3. Research relevant open-source blockchain-forensics projects. Start by checking these candidates, while verifying that each repository exists and assessing its present state before relying on it:
+- https://github.com/bobslayerX/crypttrace
+- https://github.com/graphsense/graphsense-dashboard
+- https://github.com/graphsense/graphsense-tagpacks
+- https://github.com/s0md3v/Orbit
+
+Search for further suitable repositories through available GitHub search or browsing. Focus on source code, documentation, issues, commit history, tests, dependencies, architecture, real functionality, and license terms—not merely README descriptions. If browsing is not available, state what could not be verified and continue from sources that can be inspected. Do not claim to have examined files you could not access.
+
+Compare useful references on transaction acquisition, data normalization, traversal, graph clustering, entity labels, OSINT enrichment, cross-chain matching, evidence provenance, UI interactions, report generation, test quality, maintenance, and licensing. Record exactly what should be learned from each and what TRACEFUSE must do differently. Do not wholesale-copy an application. Do not introduce a dependency or copy code without understanding its license and obligations. Prefer independent implementation informed by good patterns.
+
+4. Verify the current official documentation for all APIs and external services at implementation time. Check supported chains, endpoint contracts, authentication, pagination, rate limits, availability, data coverage, quotas, costs where published, and error formats. Never invent endpoints, headers, query parameters, service capabilities, or claimed accuracy.
+
+Evaluate these options, selecting the smallest reliable set that meets the requirements:
+- Alchemy Transfers API or a justified alternative for indexed EVM transfer history.
+- Etherscan API V2 and/or Blockscout as supplementary explorer/indexed-data adapters.
+- GoPlus Security API for supported malicious-address/token security signals.
+- GitHub REST API for permitted public repository and code-search lookups.
+- Official OFAC sanctions-list downloads and supported digital-currency identifiers.
+- Chainabuse or other public threat-intelligence sources only where actual access and rate limits make them useful.
+- Official EVM/RPC and bridge-contract documentation for verification and cross-chain work.
+
+Separate provider health, code implementation, credentials, and actual live verification. A missing credential is a configuration blocker, not permission to replace a real integration with a fake one. Continue all work not dependent on that credential. Never expose API keys in browser bundles, version control, generated reports, logs, or screenshots.
+
+============================================================
+PART 2 — REQUIRED PROJECT DOCUMENTS AND MEMORY
+============================================================
+
+Create these artifacts early, then keep them aligned with the actual implementation:
+- docs/PRD.md — complete and testable product requirements.
+- docs/TECHNICAL_ARCHITECTURE.md — component boundaries, data flow, storage, trust boundaries, security, and API adapters.
+- docs/REPO_RESEARCH.md — verified reference-project evaluation and licensing notes.
+- docs/DATA_SOURCES.md — APIs/datasets, official docs, provenance, coverage, access, quotas, freshness, and attribution limits.
+- docs/ACCEPTANCE_TESTS.md — requirement-by-requirement acceptance tests and precise verification steps.
+- docs/IMPLEMENTATION_PLAN.md — dependency-ordered implementation plan covering the entire scope, not a list of deferrals.
+- docs/BUILD_STATUS.md — durable status of every requirement and iteration.
+- docs/TEST_RESULTS.md — commands actually run, results, failures, and unresolved checks.
+- docs/IMPLEMENTATION_LOG.md — significant decisions and completed iterations.
+- CLAUDE.md — concise persistent project instructions and non-negotiable truthfulness/quality rules.
+- .env.example — configuration variable names and safe explanations only; never secrets.
+
+Use stable requirement IDs and trace every one to source files, test coverage, and acceptance criteria. Suggested namespaces: LANDING, INTAKE, CHAIN, GRAPH, QUANT, REPLAY, MATRIX, OSINT, FUSION, RISK, CROSSCHAIN, STREAM, CASEBOOK, CHALLENGE, REPORT, SECURITY, UX, and OPS. Maintain a clear status for each requirement: NOT_STARTED, IN_PROGRESS, IMPLEMENTED, TESTED, BLOCKED, or VERIFIED. Do not label something VERIFIED until its real tests/checks have passed.
+
+The PRD must cover user personas, workflows, detailed functionality, interface behaviors, data models/contracts, live-data semantics, errors, security/privacy, accessibility, non-functional constraints, provider prerequisites, testability, and the definition of done. Update the documents if a verified technical discovery requires changing a design. Preserve the complete required scope.
+
+============================================================
+PART 3 — PRODUCT AND DESIGN DIRECTION
+============================================================
+
+Product name: TRACEFUSE — THE INTELLIGENCE FUSION LAB.
+
+Product promise: “Follow the money. Find the signal.”
+
+Design a distinct, premium investigative workspace: dark-first, restrained cyan/teal and violet accents, excellent typography, deliberate hierarchy, precise grid/layout, restrained use of glow, and purposeful motion. It should feel like a modern financial-forensics tool—not a generic hacker template. Avoid excessive neon, random terminal text, meaningless counters, fake live charts, or decorative features that do not support an investigation.
+
+Create a consistent design system: colour and semantic tokens, typography scale, spacing, radii, shadows, focus styles, reusable controls, table states, graph styles, badges, tooltips, drawers, dialogs, and responsive breakpoints. Use accessible contrast and keyboard-accessible controls. Respect prefers-reduced-motion. Design desktop for complex forensic work but ensure tablet/mobile layouts remain usable.
+
+MANDATORY SCROLL-TO-REVEAL LANDING PAGE
+
+Make the landing page a polished, scroll-linked visual presentation. Use a sticky/pinned illustration area where appropriate, with narrative sections controlling a cohesive transaction-network visualization. Add a subtle progress marker and transitions. Every stage must remain readable and performant on smaller screens.
+
+Story stages:
+1. THE SIGNAL — establish TRACEFUSE and the promise to connect blockchain and open-source intelligence.
+2. FRAGMENTATION — one illustrated exploit source branches into multiple wallets and paths as the visitor scrolls.
+3. DISCONNECTED INTELLIGENCE — show two separate information systems: on-chain transaction trails and unstructured public-source clues.
+4. EVIDENCE FUSION — demonstrate how sourced evidence may connect to wallet activity; visually distinguish verified transfers from inferred links.
+5. THE INVESTIGATION ROOM — introduce the real product tools and a clear working CTA such as “Open Investigation Room” or “Start an Investigation.”
+
+The landing illustration may use explicitly illustrative data. Never style an invented example as a live investigation. The CTA must open the functioning application, not a static showcase. Motion may use Framer Motion and, if justified, GSAP ScrollTrigger; do not use both without a clear need. Use performant SVG/canvas animation where suitable. Provide reduced-motion and non-animation alternatives.
+
+============================================================
+PART 4 — COMPLETE FUNCTIONAL SCOPE
+============================================================
+
+A. INVESTIGATION INTAKE
+- Accept a wallet address or transaction hash and a selected chain where relevant.
+- Validate address/hash format and input type; resolve transaction hashes through the provider when supported.
+- Provide configurable supported-chain selection, time window, hop depth, and branching/query limits.
+- Explain unsupported chains, invalid input, empty data, rate limits, and configuration issues.
+- Start a real backend investigation and expose its actual lifecycle.
+
+B. REAL ON-CHAIN DATA ACQUISITION
+- Implement genuine server-side provider adapters for the selected blockchain API(s).
+- Retrieve actual native-asset and supported token transfers; add internal transactions/NFT information only where supported and justified.
+- Support provider pagination, rate-limit handling, timeouts, retries/backoff, caching, deduplication, and partial-result warnings.
+- Normalize chain ID, transaction hash, block number, timestamp, sender, recipient, asset/token metadata, raw amount, decimals, display amount, provider, retrieval time, and explorer URL.
+- Use appropriate decimal-safe numeric representations; do not lose precision by converting arbitrary token units to binary floating-point values too early.
+- Preserve retrieval provenance. Mark records as live, cached, or from a labelled historical case, including freshness timestamps.
+- Do not imply that an ordinary transaction endpoint gives complete decoded contract semantics or proof of the ultimate beneficial owner.
+
+C. WALLET GRAPH AND FUND TRACING
+- Build a directed graph where wallet/account or contract entities are nodes and observed transfers are edges.
+- Support forward/backward tracing, configurable hop depth and branching limits, connected-component views, edge direction, amount, timestamp, asset, and transaction drill-down.
+- Provide pan, zoom, fit-to-screen, node selection, edge selection, layout options, search, show/hide controls, filters, and focus on selected wallet/transaction.
+- Display selected-wallet metrics, transactions, labels, source evidence, and known limitations in a side panel or inspector.
+- Provide usable large-graph controls; avoid fetching or rendering unbounded graph neighborhoods.
+- Handle contracts, exchange wallets, routing wallets, repeated activity, self-transfers, and incomplete provider data without silently asserting common ownership.
+
+D. QUANTITATIVE ANALYSIS ENGINE
+Implement transparent, testable metrics where inputs are present:
+- Hop distance from the seed.
+- In-degree/out-degree and fan-in/fan-out.
+- Transaction count, frequency, velocity, and activity over a selected interval.
+- Amount distribution and justified amount-similarity measures.
+- Temporal deltas and candidate coordinated sequences.
+- Connected components and suitable clustering methods.
+- Centrality or other graph metrics where meaningful.
+- Weighted directed adjacency matrix; optional separate matrices for counts, amounts, and time windows.
+- Feature explanation, units, data requirements, limitations, and handling for unavailable values.
+
+Metrics must be calculated from normalized records and update when applicable filters change. Test the mathematics independently of the UI. Deduplicate records before calculating totals/counts. Do not use invented missing values to make a chart look complete. Document that splitting, high transaction velocity, common destinations, or graph proximity alone do not prove malicious intent or common wallet ownership.
+
+E. CHRONOREPLAY — INTERACTIVE TRANSACTION TIMELINE
+- Provide a real chronological timeline for fetched/case transactions.
+- Include play/pause, seekable time slider, playback speed, selected time display, and time-window controls.
+- Reveal actual recorded transfers in chronological order and update graph state/visibility and relevant figures according to the chosen time.
+- Permit selecting a transfer to inspect the source record and transaction.
+- Make time filtering and calculations real; playback cannot be an animation disconnected from the underlying data.
+- Clearly communicate gaps, timestamp quality, and records with unavailable timestamps.
+
+F. MATRIX MODE
+- Provide a toggle between the graph and a genuine directed matrix/heatmap view.
+- Use wallet addresses/entities on rows and columns.
+- Support transfer count and transferred-value measures and adjustable time windows.
+- Make color intensity interpretable with a legend and robust empty/zero states.
+- Support selection, hover details, search, scrolling, and drill-down from any non-empty cell to its underlying transactions.
+- Keep graph/matrix selections synchronized where meaningful.
+- Use sparse matrix techniques or virtualization when necessary; show clear limits on very large datasets.
+
+G. OSINT COLLECTOR AND INTELLIGENCE ENRICHMENT
+- Implement a real GitHub REST API adapter for permitted public repository/code-search use, respecting authentication and documented quotas.
+- Run targeted searches for relevant wallet addresses, transaction hashes, exploit identifiers, and contextual terms rather than issuing uncontrolled broad searches.
+- Extract and normalize wallet addresses and other supported indicators from accessible results.
+- Preserve exact source URLs, repository/file identifiers, snippets, publication/commit timestamps when available, collection time, query context, and indicator match location.
+- Integrate GoPlus address intelligence only for supported inputs and interpret each field according to the provider's documentation.
+- Ingest the official OFAC sanctions dataset through a reproducible importer; track its source, retrieval date, and dataset version/hash as suitable.
+- Evaluate additional accessible public threat-intelligence datasets/APIs where they strengthen the system; do not make essential workflows depend on a service with insufficient quota or unavailable partner-only access.
+- Normalize results in a common Indicator/Evidence structure, cache them, deduplicate copied/repeated evidence, respect rate limits, and provide source health/freshness state.
+- Distinguish address mention, source-reported abuse label, sanctions match, known malicious code, and identity evidence. They are not interchangeable.
+- Preserve enough surrounding context to make a match reviewable. A GitHub mention is not proof of wallet ownership or culpability.
+- Do not bypass access controls, harvest private communities, or include credentials or sensitive/private personal data.
+
+H. EVIDENCE FUSION GRAPH — CENTRAL DIFFERENTIATOR
+- Support typed entities such as wallets, transactions, repositories, public reports, intelligence indicators, labels/entities, and bridge events where applicable.
+- Support typed relationships including observed transfer, documented bridge event, exact public-source match, source-reported label, heuristic candidate connection, and analyst-created note/relationship.
+- Visually distinguish verified on-chain facts, external-source assertions, algorithmic inferences, and unverified hypotheses.
+- On selecting any entity or relationship, show the exact evidence, URL, transaction hash, timestamp, methodology, match criteria, confidence category, and known caveats.
+- Allow filters by relationship type, time range, provider/source, status, and confidence category.
+- Allow navigation between a wallet, relevant transactions, and the public source that produced a match.
+- Record evidence provenance and preserve it in saved cases and exports.
+- Show contradictory or competing evidence when discovered rather than forcing one story.
+
+I. EXPLAINABLE RISK/SUSPICION RANKING
+Implement an inspectable, configurable, reproducible heuristic combining appropriate signals such as:
+- Exact matches with trustworthy known indicators.
+- Direct/short-hop relationship to the seed transaction/wallet.
+- Temporal correlation.
+- Amount similarity with documented fee/token adjustments where relevant.
+- Graph structure and transaction behavior.
+- Independent corroborating sources and known-entity labels.
+
+Requirements:
+- Display component values/contributions, supporting facts, missing inputs, and scoring limitations.
+- Allow analysts to toggle signals and re-evaluate ranking.
+- Keep the weights configurable and documented.
+- Guard against double-counting copied reports or closely correlated signals.
+- Do not call an arbitrary weighted score a probability. Unless calibrated and validated against suitable labelled data, call it a heuristic risk/suspicion score.
+- Do not rank a wallet solely because it is new, active, near the seed, or connected to a bridge/exchange.
+- Do not automatically identify a natural person. Separate “address labelled by source X,” “candidate relationship,” and “identity attribution supported by evidence.”
+
+J. CROSS-CHAIN CANDIDATE TRACING
+- Implement support for at least two EVM-compatible networks selected based on verified provider availability and access.
+- Identify bridge contracts and mappings through official/documented sources where possible.
+- Use bridge events, message identifiers, and documented correspondence for stronger deterministic linking when available.
+- Where direct linkage is unavailable, generate clearly labelled candidate pairs using justified timing windows, token mapping, amount/fee adjustments, destination data, and additional verifiable features.
+- Store the evidence for and against each candidate, method, time delta, amount comparison, and uncertainty.
+- Label relationships as confirmed from documented events, candidate/inferred, or unresolved. Never present an uncertain match as a confirmed transfer.
+- Surface privacy-mixer and attribution gaps honestly. Do not claim that every mixer or bridge can be traced.
+
+K. ACTUAL PROGRESS AND PROVIDER HEALTH
+- Use server-sent events or an equally appropriate mechanism to expose actual investigation progress.
+- Report real stages such as acquisition, normalization, graph construction, OSINT enrichment, scoring, and report generation.
+- Progress state must reflect completed backend work, not a fake timer.
+- Show provider status, error/limit state, cache status, retrieval time, and partial-result warnings.
+- Implement retry/cancellation behavior where appropriate and safe.
+
+L. PERSISTENT INVESTIGATION CASEBOOK
+- Create, save, reopen, rename, and delete cases using real persistent storage.
+- Persist seed input, chain scope, time window, traversal limits, transaction data/source metadata as appropriate, findings, evidence provenance, rankings, relevant UI/graph state, analyst notes, bookmarks, review state, and timestamps.
+- Allow wallet/edge bookmarking, notes, marking evidence reviewed, and recording investigative decisions.
+- Reopening a case must restore its meaningful content; do not rely on in-memory frontend state.
+- Provide sensible deletion/error handling and avoid storing API secrets.
+- Preserve the ability to distinguish results that were observed live originally from cached or historical data.
+
+M. HISTORICAL CASE AND INVESTIGATOR CHALLENGE MODE
+- Include at least one genuine, labelled historical exploit/investigation case, using verifiable public transaction records and attributable source material.
+- Document why the case dataset is authentic, how it was collected, its time range, and its known gaps.
+- Run this dataset through the same normalization, graph, evidence, ranking, and reporting code as live investigations wherever practical.
+- Create an interactive guided challenge: checkpoints, hints, transaction/wallet inspection, and evidence-supported questions.
+- Check answers against the verified prepared case data and labels, not a hardcoded claim made by the live analysis engine.
+- Clearly label historical/seeded records and keep them separate from live results.
+- If the originally chosen incident cannot be verified or reliably acquired, choose another well-documented public case and report the reason. Do not fabricate an incident or its attribution.
+
+N. REPORTS AND EXPORTS
+Generate downloadable, functional reports, ideally HTML plus structured JSON and CSV exports where meaningful. Reports must include:
+- Case metadata and seed.
+- Scope/chains/time period and retrieval timestamps.
+- Relevant transaction hashes, paths, addresses, assets, and explorer links.
+- Wallet relationships and supporting evidence.
+- OSINT matches with source URLs, context, and source dates when available.
+- Graph/temporal statistics and scoring explanation.
+- Cross-chain links/candidates and their evidence category.
+- Data provider, freshness/cache status, provenance, unresolved leads, and blind spots.
+- Clear distinction between observed facts, reported claims, and algorithmic hypotheses.
+- No unsupported claim that a particular person is the attacker.
+
+Reports must be parseable/valid where appropriate, correctly encode values, avoid empty/fake result files, and exclude secrets.
+
+O. PRODUCT-WIDE INTERACTIONS AND QUALITY
+- Fully functional navigation, inputs, buttons, selects, filters, sorting, menus, drawers, modals, tooltips, search, graph controls, timeline, matrix cells, casebook operations, challenge actions, and export buttons.
+- Loading, empty, offline, missing-key, provider error, rate-limited, partial-result, validation, and success states.
+- Responsive design, keyboard navigation, accessible semantic controls, usable focus indicators, reduced-motion behavior, and readable contrast.
+- No dead links, nonfunctional buttons, inert mock UI, “Coming soon” placeholders, misleading fake progress, or fabricated live results.
+- Give useful feedback after meaningful actions and protect unsaved user input where practical.
+
+============================================================
+PART 5 — ENGINEERING ARCHITECTURE AND IMPLEMENTATION QUALITY
+============================================================
+
+Use this recommended stack unless repository inspection or a verified technical reason justifies a better choice. Document changes and trade-offs:
+
+Frontend:
+- React + Vite + TypeScript.
+- Tailwind CSS and a small consistent component system.
+- Framer Motion; add GSAP only if scroll-linked behavior materially benefits from it.
+- Cytoscape.js for wallet/evidence network visualization.
+- Recharts for suitable quantitative charts.
+- An efficient selectable matrix/heatmap implementation.
+
+Backend:
+- Python + FastAPI.
+- NetworkX for graph calculations.
+- Pandas/NumPy where useful for data cleaning and matrix/temporal operations.
+- SQLite for a self-contained hackathon deployment unless the existing application has a justified persistence layer; isolate repositories/data access so migration is possible.
+- Server-sent events for true progress updates.
+
+Separate concerns into provider adapters, normalization/domain models, analysis services, storage/repositories, API routes, and UI components. Keep the provider integrations modular and the analysis engine independent of any one vendor. Use typed contracts and validation at system boundaries. Use a lockfile and documented setup commands.
+
+Provide:
+- A complete README with installation, development, environment variables, test commands, API setup, troubleshooting, deployment, and demo flow.
+- `.env.example` with variable names and descriptions but no real keys.
+- A database initialization/migration approach appropriate to the chosen storage.
+- Safe logging without API keys or sensitive credentials.
+- Health/readiness endpoints and diagnostics appropriate to the architecture.
+- Sensible timeouts and request-size/traversal bounds.
+
+Use accurate units and chain identifiers. Validate all external inputs. Treat external content and API payloads as untrusted. Avoid server-side request forgery by not letting arbitrary URLs supplied by users become unrestricted server fetches. Sanitize rendered untrusted snippets. Avoid unsafe HTML injection. Do not allow user-provided input to trigger an unbounded crawl or expensive graph traversal.
+
+============================================================
+PART 6 — TESTING, AUTONOMOUS LOOP, AND ANTI-FALSE-COMPLETION RULES
+============================================================
+
+Create and maintain a durable requirement checklist in docs/BUILD_STATUS.md. For every requirement ID, record the implementation files, test names/commands, status, known issues, and evidence supporting its status.
+
+For each coherent unit of work, perform this loop:
+1. Read BUILD_STATUS and the relevant PRD/architecture section.
+2. Inspect existing code and dependencies before editing.
+3. Select the next highest-priority unmet requirement and its prerequisites.
+4. Implement the feature end to end, including states, errors, and interactions.
+5. Add or update automated tests and any needed fixtures.
+6. Run focused tests first.
+7. Run relevant type checking, linting, formatting, and production build checks.
+8. Inspect the code diff and exercise the behavior when tools allow.
+9. Diagnose failures, fix root causes, and rerun the relevant checks.
+10. Update BUILD_STATUS, TEST_RESULTS, and IMPLEMENTATION_LOG truthfully.
+11. Move to the next unmet requirement and repeat without waiting for user permission.
+
+Do not stop after a green frontend build if backend tests fail, or after tests pass if the interface is not actually functional. Do not write tests that merely mirror implementation mistakes. Add tests for both expected behavior and failure modes.
+
+Backend tests must cover, where applicable:
+- Input validation, API adapters, pagination, unit normalization, and deduplication.
+- Timeouts, provider failures, rate limits, retry behavior, and missing credentials.
+- Storage CRUD and saved-case reopening.
+- Graph traversal, edge direction, depth/branch limits, and connected components.
+- Matrix values, cell-to-transaction mapping, temporal filters, and statistics.
+- Risk-score reproducibility, feature toggles, and correlated-source handling.
+- Evidence provenance, label semantics, bridge candidate classifications, and report generation.
+- Progress events and partial-result/error states.
+
+Frontend tests must cover, where applicable:
+- Navigation and landing-page CTA.
+- Form submission and validation.
+- Graph node/edge selection and filtering.
+- ChronoReplay time filtering and play/pause controls.
+- Matrix selection and drill-down.
+- Evidence detail and source links.
+- Case creation, edits, saving, reopening, and deletion.
+- Challenge flow and report exports.
+- Loading, empty, rate-limited, unconfigured, and error states.
+- Accessibility and major responsive layouts.
+
+End-to-end verification must attempt:
+1. Open landing page and follow the working CTA.
+2. Run an investigation using real on-chain records when valid credentials are available.
+3. Open the historical case and trace actual sourced data through the same engine.
+4. Inspect a graph node and an edge's underlying transaction.
+5. Change a time window and verify graph/timeline/matrix data responds correctly.
+6. Open Matrix Mode and inspect the source transactions for a populated cell.
+7. Open OSINT evidence and visit the original source.
+8. Inspect the reasoning behind a heuristic score.
+9. Save a case, reload/reopen it, and confirm persistence.
+10. Generate and inspect HTML, JSON, and CSV reports as implemented.
+11. Trigger or simulate a legitimate provider failure in tests and confirm the UI does not pretend it succeeded.
+12. Verify that missing keys are clearly represented as unconfigured and that independent features still operate.
+
+Use the repository's actual package manager and available commands. Discover commands from package manifests rather than assuming scripts exist. If Playwright/browser automation is available, use it for real UI journeys. If not, run the closest valid checks and clearly document which manual/browser verification remains impossible.
+
+After each major feature, conduct a skeptical independent review:
+- Does it meet the exact requirement or only look like it does?
+- Does real data flow through the full feature?
+- Are timestamp units, token decimals, direction, chain IDs, and numeric precision correct?
+- Are data provenance and confidence represented correctly?
+- Do controls affect real state and data?
+- Are loading/errors/empty states honest?
+- Did this change break another route or behavior?
+- Is there duplicated logic, unnecessary dependency weight, or security risk?
+- Are tests meaningful and actually executed?
+
+If the same failure remains after two focused repair attempts, diagnose the underlying assumption and try a materially different solution. If a particular live check genuinely requires unavailable credentials, document the exact blocker and evidence, implement/test the connector with safe fixtures, mark live verification BLOCKED (not VERIFIED), and continue all independent tasks. Never spin endlessly and never report a failed check as successful.
+
+If execution/context limits interrupt the work, write exact resume instructions, the last successful checks, current failures, and next requirement into BUILD_STATUS.md. On resume, reread the actual files and continue from that state rather than starting over.
+
+============================================================
+PART 7 — OFFICIAL REQUIREMENTS AND ACCEPTANCE CHECKLIST
+============================================================
+
+Create explicit acceptance criteria for all requirements below and test them. No mandatory category may disappear between the PRD and the implementation checklist:
+
+[ ] Scrollytelling landing page with all five story stages, responsive/reduced-motion behavior, and working CTA.
+[ ] Genuine address/transaction intake, validation, chain selection, and analysis configuration.
+[ ] Working on-chain provider adapter(s), real retrieval, normalization, pagination, deduplication, caching, and provenance.
+[ ] Directed wallet graph with investigation interactions, node/edge detail, and bounded traversal.
+[ ] Quantitative metrics and verified directed adjacency matrix.
+[ ] ChronoReplay with real time-dependent graph/timeline state.
+[ ] Matrix Mode with selectable cells and underlying transaction drill-down.
+[ ] GitHub public-source search connector and source-context extraction.
+[ ] GoPlus intelligence integration subject to documented support and configuration.
+[ ] OFAC list ingestion and defensible matching semantics.
+[ ] Evidence Fusion Graph combining wallet and external source entities.
+[ ] Explainable configurable heuristic scoring with no unsupported probability/identity claims.
+[ ] Two supported EVM networks and a defensible cross-chain-event/candidate pipeline.
+[ ] Genuine backend investigation progress and provider health/freshness state.
+[ ] Persistent Casebook with save/reopen/edit/delete, notes, bookmarks, and review status.
+[ ] Genuine historical case and interactive evidence-based challenge mode.
+[ ] Downloadable, populated, correctly formatted HTML/JSON/CSV reports as specified.
+[ ] Secure server-side secrets, validation, safe external-content handling, traversal bounds, and error handling.
+[ ] Backend, frontend, and integration tests relevant to all critical requirements.
+[ ] Production build and all available quality checks executed and failures repaired or explicitly documented.
+[ ] README and operational docs are accurate and sufficient for another developer to run the product.
+[ ] Final audit checks the actual PRD against implemented source files and acceptance results.
+
+Where a service or data source has an inherent limitation, implement the best valid alternative behavior and communicate the limitation. “Everything included” means every feasible product feature and adapter is implemented—not that the software claims omniscience over anonymized transactions or unknown real-world identities.
+
+============================================================
+PART 8 — DEFINITION OF DONE AND FINAL AUDIT
+============================================================
+
+The project can only be reported complete after:
+- Every mandatory requirement is mapped to implementation and verification evidence.
+- All feasible features above are implemented, tested, and usable end to end.
+- The landing page and the working investigation product form one coherent experience.
+- Live APIs have been genuinely exercised wherever valid credentials are available.
+- Historical mode is clearly labelled, authentic, reproducible, and uses the actual analysis pipeline wherever practical.
+- The main user journeys work without inert controls or false data.
+- Relevant lint, type check, test, and production build commands have actually been executed; failures have been fixed or explicitly documented.
+- Tests/results and documentation match the repository's true state.
+- Security and attribution limitations are clearly conveyed.
+
+Before final reporting, independently compare every PRD requirement with the source tree and acceptance tests. Inspect the remaining Git diff. Check for TODOs, “coming soon” placeholders, dummy API responses masquerading as live data, dead links, hardcoded success paths, unconnected UI controls, broken exports, and misleading labels. Correct every issue that can be fixed within the environment.
+
+Final response must report:
+1. What was implemented, mapped to requirement IDs.
+2. Actual verification commands run and their results.
+3. Which live integrations were successfully exercised.
+4. Which integrations require user-supplied credentials/access and why.
+5. Known defects or checks that could not be completed; do not hide them.
+6. Exact setup/run/test instructions and required environment variables.
+7. How to demonstrate the complete historical case.
+8. Remaining data/inference limitations inherent to the problem.
+
+Never claim “all done” merely because the UI compiles. Never claim a test passed unless it ran and passed. Never claim a live integration is verified if it was tested only with fixtures.
+
+BEGIN NOW
+
+Inspect the repository and available tools. Verify the reference repositories and current official API documentation. Create the required PRD, architecture, research, data-source, acceptance, implementation, and memory documents. Then immediately initialise the requirement checklist and start implementation. Continue iteratively through the entire scope, testing, reviewing, fixing, and recording true status after every coherent unit of work. Do not stop after planning. Build TRACEFUSE.

@@ -1,0 +1,67 @@
+{
+  "key": "ronin-2022",
+  "title": "Ronin Bridge exploit (March 2022) — historical case",
+  "summary": "On 2022-03-23 an attacker using compromised Ronin validator keys withdrew ETH and USDC from the Ronin Bridge contract on Ethereum to 0x098B…2f96, then split funds across new wallets and routed a portion into Tornado Cash. OFAC added the receiving address to the Lazarus Group SDN entry on 2022-04-14. This dataset is a recording of real, public Blockscout/GoPlus/GitHub API responses replayed through the same TRACEFUSE pipeline.",
+  "seed_kind": "address",
+  "config": {
+    "seed": "0x098B716B8Aaf21512996dC57EB0615e2383E2f96",
+    "chain": "ethereum",
+    "direction": "forward",
+    "max_hops": 3,
+    "max_branching": 6,
+    "max_transfers_per_address": 5000,
+    "max_nodes": 250,
+    "time_start": "2022-03-23T00:00:00Z",
+    "time_end": "2022-05-01T00:00:00Z",
+    "include_internal": true,
+    "include_tokens": true,
+    "osint": {"ofac": true, "goplus": true, "github": true, "blockscout_labels": true},
+    "crosschain": {"enabled": true, "target_chains": ["optimism"], "window_hours": 48, "amount_tolerance": 0.05, "max_candidates_per_event": 5}
+  },
+  "time_range": {"start": "2022-03-23T00:00:00Z", "end": "2022-05-01T00:00:00Z"},
+  "collection_method": "scripts/collect_historical_case.py runs the live pipeline against keyless public APIs with a recording HTTP transport; every recorded response is the unmodified provider body with its retrieval timestamp. Credentials are never recorded.",
+  "known_gaps": [
+    "Bounded traversal (3 hops, 6 branches/node, 5000 records/address): not every downstream wallet is included.",
+    "Tornado Cash pools break deterministic linkage; withdrawals are not traced.",
+    "Later laundering steps (e.g. bridging to other chains after May 2022) are outside the time window.",
+    "Explorer labels and GoPlus flags reflect the providers' state at recording time, not at the time of the incident."
+  ],
+  "sources": [
+    {
+      "title": "OFAC Recent Actions 2022-04-14: North Korea Designation Update",
+      "publisher": "U.S. Treasury — OFAC",
+      "url": "https://ofac.treasury.gov/recent-actions/20220414",
+      "type": "official_sanctions_notice",
+      "published": "2022-04-14T00:00:00+00:00",
+      "verified_at": "2026-10-17T16:30:00+00:00",
+      "summary": "Updates the LAZARUS GROUP SDN entry to add 'Digital Currency Address - ETH 0x098B716B8Aaf21512996dC57EB0615e2383E2f96'.",
+      "subjects": ["0x098b716b8aaf21512996dc57eb0615e2383e2f96"],
+      "confidence": "confirmed",
+      "caveats": ["A sanctions designation attributes the address to an SDN entry under U.S. law; it is not a technical proof of key control."]
+    },
+    {
+      "title": "U.S. Treasury Sanctions Notorious Virtual Currency Mixer Tornado Cash (press release jy0916)",
+      "publisher": "U.S. Department of the Treasury",
+      "url": "https://home.treasury.gov/news/press-releases/jy0916",
+      "type": "official_statement",
+      "published": "2022-08-08T00:00:00+00:00",
+      "verified_at": "2026-10-17T16:30:00+00:00",
+      "summary": "States Tornado Cash was used to launder over $455 million stolen by the Lazarus Group in the largest known virtual currency heist to date.",
+      "subjects": [],
+      "confidence": "strong",
+      "caveats": ["Does not list individual transactions; links the heist to Tornado Cash at the aggregate level. Tornado Cash was delisted on 2025-03-21."]
+    },
+    {
+      "title": "Ronin Network - REKT",
+      "publisher": "rekt.news",
+      "url": "https://rekt.news/ronin-rekt",
+      "type": "incident_report",
+      "published": "2022-03-29T00:00:00+00:00",
+      "verified_at": "2026-10-17T16:30:00+00:00",
+      "summary": "Independent incident write-up: compromised validator keys used to withdraw 173,600 ETH and 25.5M USDC from the Ronin bridge.",
+      "subjects": ["0x098b716b8aaf21512996dc57eb0615e2383e2f96"],
+      "confidence": "moderate",
+      "caveats": ["Secondary reporting; not an official statement."]
+    }
+  ]
+}
