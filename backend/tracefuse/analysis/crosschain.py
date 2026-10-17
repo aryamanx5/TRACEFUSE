@@ -14,8 +14,9 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Any
 
+from ..bridges import across
 from ..bridges.op_stack import TRANSACTION_DEPOSITED_TOPIC, decode_deposit_initiated, derive_deposit
-from ..chains import CHAINS, ChainConfig
+from ..chains import CHAIN_BY_ID, CHAINS, ChainConfig
 from ..domain.models import Transfer
 from ..intel import registry
 from ..providers.base import AddressFetchResult, BlockRange, LogRecord, TxFetchResult
@@ -101,6 +102,12 @@ class CrossChainTracer:
             "links": [], "evidence_for": [], "evidence_against": [], "status": "unresolved", "method": None,
             "uncertainty": None,
         }
+        if it["bridge_family"] == "across":
+            try:
+                if await self._across(chain, it, base):
+                    return base
+            except ProviderError as exc:
+                base["evidence_against"].append(f"could not read Across deposit/fill logs: {exc.message}")
         if it["bridge_family"] == "op-stack":
             try:
                 det = await self._op_stack(chain, it, base)
@@ -160,6 +167,65 @@ class CrossChainTracer:
                                    "deposit target and may be a bridge/messenger predeploy that forwards to the user.")
             return True
         return False
+
+    async def _across(self, chain: ChainConfig, it: dict[str, Any], base: dict[str, Any]) -> bool:
+        """Across: read FundsDeposited (destination, depositId, recipient, outputAmount); confirm via FilledRelay."""
+        logs = await self.logs(chain, it["tx_hash"])
+        deps = [d for d in (across.decode_deposit(chain.chain_id, lg.address, lg.topics, lg.data) for lg in logs) if d]
+        if not deps:
+            base["evidence_against"].append("no Across FundsDeposited event in this transaction")
+            return False
+        from datetime import UTC, datetime
+
+        for dep in deps:
+            dest = CHAIN_BY_ID.get(dep.destination_chain_id)
+            dest_key = dest.key if dest else f"chain-id:{dep.destination_chain_id}"
+            base["destination_chain"] = dest_key
+            base["method"] = ("Across documented correspondence: FundsDeposited(destinationChainId, depositId) on the origin "
+                              "SpokePool ↔ FilledRelay(originChainId, depositId) on the destination SpokePool")
+            base["evidence_for"].append(
+                f"FundsDeposited: depositId {dep.deposit_id} → chain {dep.destination_chain_id}, recipient {dep.recipient}, "
+                f"outputAmount {dep.output_amount} (raw units of {dep.output_token})")
+            link: dict[str, Any] = {"destination_chain": dest_key, "destination_tx": None, "recipient": dep.recipient,
+                                    "amount": str(dep.output_amount), "asset": dep.output_token, "deposit_id": dep.deposit_id,
+                                    "status": "unresolved", "destination_explorer_url": None}
+            base["links"].append(link)
+            if dest is None:
+                base["evidence_against"].append(f"destination chain id {dep.destination_chain_id} is not supported by TRACEFUSE")
+                continue
+            if dep.destination_chain_id not in across.SPOKE_POOLS:
+                base["evidence_against"].append(f"no documented Across SpokePool registered for {dest.name}; fill not verified")
+                continue
+            if not self.ready(dest):
+                base["evidence_against"].append(
+                    f"no configured provider for {dest.name} (set ALCHEMY_API_KEY); the fill could not be looked up")
+                continue
+            start = datetime.fromtimestamp(it["timestamp"] or 0, UTC)
+            end_ts = min(dep.fill_deadline or 0, int((it["timestamp"] or 0) + self.window_hours * 3600)) or int(
+                (it["timestamp"] or 0) + self.window_hours * 3600)
+            b0 = await self.block_at(dest, start, "after")
+            b1 = await self.block_at(dest, datetime.fromtimestamp(end_ts, UTC), "before")
+            arrivals = await self.address_transfers(dest, dep.recipient, BlockRange(b0, b1))
+            txs = sorted({t.tx_hash for t in arrivals.transfers if t.to_address == dep.recipient})[:10]
+            for h in txs:
+                for lg in await self.logs(dest, h):
+                    fill = across.is_fill_for(dep, dest.chain_id, lg.address, lg.topics, lg.data)
+                    if fill:
+                        link.update({"destination_tx": h, "status": "confirmed", "destination_explorer_url": dest.explorer_tx_url(h),
+                                     "relayer": fill.get("relayer"), "filled_amount": str(fill.get("output_amount"))})
+                        base["evidence_for"].append(f"FilledRelay on {dest.name} tx {h} matches originChainId "
+                                                    f"{dep.origin_chain_id} + depositId {dep.deposit_id}")
+                        break
+                if link["status"] == "confirmed":
+                    break
+            if link["status"] != "confirmed":
+                base["evidence_against"].append(f"no matching FilledRelay found for depositId {dep.deposit_id} on {dest.name} "
+                                                "before the fill deadline (unfilled, refunded, or outside fetched data)")
+        statuses = {lk["status"] for lk in base["links"]}
+        base["status"] = "confirmed" if "confirmed" in statuses else "unresolved"
+        base["uncertainty"] = ("Deposit intent is a documented on-chain event; the link is confirmed only when the matching "
+                               "FilledRelay is observed on the destination chain.")
+        return True
 
     async def _heuristic(self, chain: ChainConfig, it: dict[str, Any], base: dict[str, Any]) -> None:
         src_ts = it["timestamp"]

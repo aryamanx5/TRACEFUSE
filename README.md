@@ -69,7 +69,24 @@ cd backend && .venv/bin/pytest -q && .venv/bin/ruff check tracefuse tests script
 ```
 
 ```bash
-cd frontend && npm test && npm run build
+cd frontend && npm test && npm run lint && npm run build
+```
+
+Browser E2E (Playwright with system Google Chrome; deterministic, offline, uses the recorded Ronin case):
+
+```bash
+cd frontend && npm run e2e
+```
+
+Opt-in genuine live-provider checks (network required; never part of the default suites):
+
+```bash
+cd backend && TRACEFUSE_LIVE_TESTS=1 .venv/bin/pytest tests/test_live.py -v
+```
+
+
+```bash
+cd frontend && npm run e2e:live
 ```
 
 Backend tests cover adapters (mocked transports), pagination, rate limits/timeouts/retries, decimal precision,

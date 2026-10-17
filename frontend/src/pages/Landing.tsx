@@ -81,7 +81,7 @@ export default function Landing() {
       <a href="#story" className="skip-link tf-btn">Skip to content</a>
       <header className="fixed inset-x-0 top-0 z-30 border-b border-line/60 bg-bg/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link to="/" className="flex items-center gap-2 font-semibold tracking-wide" aria-label="TRACEFUSE home">
+          <Link to="/" className="flex items-center gap-2 font-semibold tracking-wide">
             <img src="/favicon.svg" alt="" className="h-6 w-6" />
             TRACEFUSE
             <span className="hidden text-xs font-normal text-faint sm:inline">The Intelligence Fusion Lab</span>
@@ -101,7 +101,7 @@ export default function Landing() {
         )}
       </header>
 
-      <main id="story" ref={container} className="relative mx-auto max-w-6xl px-4 pt-20">
+      <main id="story" ref={container} tabIndex={-1} className="relative mx-auto max-w-6xl px-4 pt-20 outline-none">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
           {/* narrative column */}
           <div>
@@ -116,7 +116,7 @@ export default function Landing() {
                 className="flex min-h-[85vh] flex-col justify-center py-10 md:min-h-[100vh]"
               >
                 <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-signal">{s.kicker}</p>
-                <h2 id={`stage-${s.key}`} className="mb-4 text-3xl font-semibold leading-tight md:text-5xl">
+                <Heading level={i === 0 ? 1 : 2} id={`stage-${s.key}`} className="mb-4 text-3xl font-semibold leading-tight md:text-5xl">
                   {i === 0 ? (
                     <>
                       <span className="bg-gradient-to-r from-signal to-intel bg-clip-text text-transparent">TRACEFUSE</span>
@@ -126,7 +126,7 @@ export default function Landing() {
                   ) : (
                     s.title
                   )}
-                </h2>
+                </Heading>
                 <p className="max-w-md text-base text-dim md:text-lg">{s.body}</p>
                 {/* small-screen illustration (sticky panel is hidden on mobile) */}
                 <div className="mt-6 md:hidden" aria-hidden>
@@ -172,6 +172,10 @@ export default function Landing() {
       </footer>
     </div>
   )
+}
+
+function Heading({ level, children, ...rest }: { level: 1 | 2; id: string; className: string; children: React.ReactNode }) {
+  return level === 1 ? <h1 {...rest}>{children}</h1> : <h2 {...rest}>{children}</h2>
 }
 
 function StoryGraphic({ stage, reduced }: { stage: number; reduced: boolean }) {

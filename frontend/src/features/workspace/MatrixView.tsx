@@ -118,7 +118,7 @@ export default function MatrixView({ invId, filter, assets, selection, onSelect 
               </tbody>
             </table>
           </div>
-          <aside className="w-52 shrink-0 space-y-3 text-xs">
+          <aside className="w-52 shrink-0 space-y-3 text-xs" aria-label="Matrix legend and cell details">
             <div>
               <p className="tf-label">Legend ({data.scale} scale)</p>
               <div className="h-3 rounded" style={{ background: 'linear-gradient(90deg, color-mix(in srgb, var(--signal) 15%, var(--panel-2)), var(--signal))' }} />

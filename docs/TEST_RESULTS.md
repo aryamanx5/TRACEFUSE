@@ -40,3 +40,33 @@ Landing (all 5 stages, CTA) → Historical case → open → SSE progress → gr
 - Async job start from sync route (no running loop) → async routes.
 - Cytoscape destroyed mid-layout → stop layouts before destroy.
 - Base/Arbitrum shown as ready though Blockscout challenges scripts → honest readiness.
+
+## Verification & hardening pass (2026-10-18)
+| Command | Result |
+|---|---|
+| `cd frontend && npm run e2e` (Playwright, system Chrome, API in `TRACEFUSE_OFFLINE=1` + fresh DB, genuine Ronin cassette) | **18 passed** (16 desktop journeys + responsive desktop 1280 px + mobile Pixel 7) |
+| `cd frontend && npm run e2e:live` (opt-in, real Blockscout/GoPlus) | **1 passed** — live tx-hash investigation, origin "Live", >0 transfers |
+| `cd backend && .venv/bin/pytest -q` | **64 passed** |
+| `.venv/bin/ruff check tracefuse tests scripts` / `.venv/bin/mypy tracefuse` | clean / no issues (56 files) |
+| `cd frontend && npm test` · `npm run lint` · `npm run build` | 12 passed · **0 warnings** (5 set-state-in-effect warnings fixed structurally) · OK |
+
+E2E covers: landing stages/progress/CTAs/unknown routes, all nav routes, historical case open (SSE), wallet inspection (correct selected wallet), sanctions evidence + source link, ChronoReplay play/pause/step/server snapshot/window/empty state, Matrix value measure + cell drill-down, Fusion conflicts + relationship details + status filter, ranking re-evaluation, filters (asset, hide/show), exports (HTML/JSON/CSV + downloads), casebook create/edit/reopen/delete, bookmarks/reviews/UI-state restore, challenge (server-side checks, no answer leakage, persistence, reset), offline-provider failure + real retry, validation, unconfigured providers, backend-unreachable recovery, no horizontal overflow at mobile. Every test fails on console/page errors.
+
+Bugs found and fixed by this pass: challenge `inspect` hints leaked answers; graph search could not find decluttered wallets; ChronoReplay hid window controls when the window was empty (dead end); seed-only graph instead of empty state; duplicate fusion relationship IDs; Cytoscape animated fusion layout crashing on rebuild; all-seed-fetch failures reported as "partial" instead of "failed"; recorded timeouts replayed as "not in historical dataset" (cassette now records transport failures; replay raises a genuine timeout — re-recorded, replay identical: 284 nodes, 1,642 transfers, statuses).
+
+Re-verified on the committed tree (after commit `b7f5b5f`, 2026-10-18): pytest 64 passed · ruff clean · mypy clean ·
+vitest 12 passed · oxlint 0 warnings/errors · vite build OK · Playwright `npm run e2e` 18 passed. (Live E2E not re-run.)
+
+## Accessibility + cross-chain pass (2026-10-18)
+| Command | Result |
+|---|---|
+| `cd backend && .venv/bin/pytest -q` | 66 passed, 3 skipped (live, opt-in) |
+| `TRACEFUSE_LIVE_TESTS=1 .venv/bin/pytest tests/test_live.py` | 3 passed: OP Mainnet investigation; OP-Stack deposit **confirmed** (L2 `0xc453…` fetched); Across deposit decoded (dest Base, depositId 4790238 → unresolved, names ALCHEMY_API_KEY) |
+| ruff / mypy | clean / no issues (57 files) |
+| `cd frontend && npm test` | 12 passed, **exit 0** (fixed: Vitest previously also collected Playwright specs and exited non-zero) |
+| `npm run lint` / `npm run build` | 0 warnings / OK |
+| `npm run e2e` | **24 passed** (adds axe dark+light, keyboard/focus/dialog/reduced-motion specs) |
+
+Defects fixed: 11 accessibility issues (docs/ACCESSIBILITY_AUDIT.md); Vitest scope; bridge interactions now traced seed-first
+(bounded tracing previously could skip the seed transaction's own bridge deposit); Across deposits decoded from the
+documented `FundsDeposited` event instead of guessing the destination chain.

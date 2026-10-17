@@ -54,7 +54,7 @@ export default function ScoresView({ invId, filter, onSelect, selection }: { inv
         </div>
         <ErrorBox error={error} onRetry={() => void run()} />
         <table className="tf-table">
-          <thead><tr><th>#</th><th>Address</th><th>Score</th><th>Top signals</th><th>Coverage</th><th /></tr></thead>
+          <thead><tr><th>#</th><th>Address</th><th>Score</th><th>Top signals</th><th>Coverage</th><th><span className="sr-only">Explanation</span></th></tr></thead>
           <tbody>
             {rows.slice(0, 200).map((s) => (
               <FragmentRow key={s.address} s={s} sel={sel === s.address} expanded={expanded === s.address}
@@ -64,7 +64,7 @@ export default function ScoresView({ invId, filter, onSelect, selection }: { inv
         </table>
         {scores && rows.length === 0 && <p className="p-4 text-sm text-dim">No candidate addresses in the current filter.</p>}
       </div>
-      <aside className="space-y-2 text-xs">
+      <aside className="space-y-2 text-xs" aria-label="Signals and weights">
         <h3 className="font-semibold">Signals &amp; weights</h3>
         <p className="text-faint">Toggle signals or change weights and re-evaluate. The same inputs always yield the same ranking.</p>
         {spec && Object.entries(spec.signals).map(([k, v]) => (

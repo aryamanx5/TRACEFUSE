@@ -10,7 +10,7 @@ test('landing, app shell and workspace fit the viewport', async ({ page }) => {
   await noHorizontalOverflow(page)
   for (let i = 0; i < 5; i++) {
     await page.locator(`section[data-stage="${i}"]`).scrollIntoViewIfNeeded()
-    await expect(page.locator(`section[data-stage="${i}"] h2`)).toBeVisible()
+    await expect(page.locator(`section[data-stage="${i}"] :is(h1, h2)`)).toBeVisible()
   }
   await noHorizontalOverflow(page)
   for (const path of ['/app', '/app/new', '/app/cases', '/app/historical', '/app/challenge', '/app/status']) {

@@ -176,7 +176,17 @@ function WorkspaceBody({ id, inv, events, refresh, caseId, caseData, initial }: 
           </div>
         </>
       )}
+      <p className="sr-only" aria-live="polite">{announce(selection)}</p>
       <Toast message={toast} onDone={() => setToast(null)} />
     </div>
   )
+}
+
+function announce(s: Selection): string {
+  if (!s) return ''
+  if (s.kind === 'node') return `Inspector shows wallet ${s.address}`
+  if (s.kind === 'edge') return `Inspector shows transfers from ${s.source} to ${s.target}`
+  if (s.kind === 'transfers') return `Inspector shows ${s.ids.length} transfer(s): ${s.title}`
+  if (s.kind === 'evidence') return `Inspector shows evidence: ${s.evidence.title}`
+  return `Inspector shows relationship: ${s.rel.type.replace(/_/g, ' ')}`
 }

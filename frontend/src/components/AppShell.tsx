@@ -13,7 +13,7 @@ export default function AppShell() {
   return (
     <div className="flex min-h-full flex-col md:flex-row">
       <a href="#main" className="skip-link tf-btn">Skip to main content</a>
-      <aside className="border-b border-line bg-elev md:w-56 md:shrink-0 md:border-r md:border-b-0">
+      <aside aria-label="Application sidebar" className="border-b border-line bg-elev md:w-56 md:shrink-0 md:border-r md:border-b-0">
         <div className="flex items-center justify-between px-4 py-3 md:block">
           <Link to="/" className="flex items-center gap-2 font-semibold tracking-wide">
             <img src="/favicon.svg" alt="" className="h-6 w-6" /> TRACEFUSE
@@ -35,7 +35,7 @@ export default function AppShell() {
           ))}
         </nav>
       </aside>
-      <main id="main" className="min-w-0 flex-1 p-3 md:p-5">
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-3 outline-none md:p-5">
         <Outlet />
       </main>
     </div>

@@ -233,7 +233,26 @@ export default function GraphView({ graph, selection, onSelect, visibleUntil, on
         <span className="ml-auto text-faint">{graph.nodes.length} nodes · {graph.edges.length} edges</span>
       </div>
       {searchMsg && <p role="status" className="px-2 pt-1 text-xs text-hypo">{searchMsg}</p>}
-      <div ref={box} className="min-h-[420px] flex-1" role="application" aria-label="Wallet transfer graph. Select nodes or edges to inspect; use the transfer table in the inspector for keyboard access." />
+      <div ref={box} className="min-h-[420px] flex-1" role="img" aria-label={`Wallet transfer graph with ${graph.nodes.length} addresses and ${graph.edges.length} directed edges. Use the wallet list below for keyboard access.`} />
+      <details className="border-t border-line p-2 text-xs">
+        <summary className="cursor-pointer font-medium">Wallet list ({graph.nodes.length}) — keyboard-accessible</summary>
+        <ul className="mt-2 max-h-56 space-y-0.5 overflow-auto" aria-label="Wallets in graph">
+          {[...graph.nodes]
+            .sort((a, b) => Number(b.is_seed) - Number(a.is_seed) || (b.score ?? -1) - (a.score ?? -1) || a.id.localeCompare(b.id))
+            .slice(0, 400)
+            .map((n) => (
+              <li key={n.id}>
+                <button type="button" aria-pressed={sel === n.id} onClick={() => onSelect({ kind: 'node', address: n.id })}
+                  className={`w-full rounded px-1 text-left hover:bg-panel2 ${sel === n.id ? 'bg-panel2' : ''}`}>
+                  <span className="mono">{short(n.id, 6)}</span>
+                  {n.is_seed && <span className="tf-badge ml-1">seed</span>}
+                  {n.labels[0] && <span className="ml-1 text-dim">{n.labels[0].label}</span>}
+                  <span className="ml-1 text-faint">· {n.in_count} in / {n.out_count} out{n.score !== null ? ` · score ${n.score.toFixed(1)}` : ''}</span>
+                </button>
+              </li>
+            ))}
+        </ul>
+      </details>
       <div className="flex flex-wrap gap-3 border-t border-line p-2 text-[11px] text-dim" aria-label="Legend">
         <span><span className="inline-block h-2.5 w-2.5 rounded-full bg-signal" /> seed</span>
         <span>◆ bridge · ⬢ exchange/DEX · ⯃ mixer (source labels)</span>

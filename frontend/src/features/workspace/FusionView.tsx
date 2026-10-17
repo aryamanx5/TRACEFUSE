@@ -125,7 +125,7 @@ export default function FusionView({ invId, filter, onSelect, reloadKey }: { inv
           <ul>{data.conflicts.slice(0, 5).map((c, i) => <li key={i}><span className="mono">{short(c.address)}</span>: {c.summary}</li>)}</ul>
         </div>
       )}
-      <div ref={box} className="min-h-[420px] flex-1" role="application" aria-label="Evidence fusion graph. Select relationships to inspect their evidence." />
+      <div ref={box} className="min-h-[420px] flex-1" role="img" aria-label={`Evidence fusion graph with ${visible.ents.length} entities and ${visible.rels.length} relationships. Use the relationship list below for keyboard access.`} />
       <details className="border-t border-line p-2 text-xs">
         <summary className="cursor-pointer font-medium">Relationship list ({visible.rels.length}) — keyboard-accessible</summary>
         <ul className="mt-2 max-h-56 space-y-1 overflow-auto" aria-label="Fusion relationships">

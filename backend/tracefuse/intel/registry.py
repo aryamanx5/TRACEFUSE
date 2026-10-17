@@ -11,6 +11,7 @@ SUPERCHAIN = "https://github.com/ethereum-optimism/superchain-registry/blob/main
 BASE_DOCS = "https://docs.base.org/base-chain/network-information/base-contracts"
 ARB_DOCS = "https://docs.arbitrum.io/build-decentralized-apps/reference/contract-addresses"
 OFAC_TORNADO = "https://ofac.treasury.gov/recent-actions/20220808"
+ACROSS_DOCS = "https://docs.across.to/reference/contract-addresses"
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,9 @@ BRIDGES: tuple[KnownEntity, ...] = (
                 "arbitrum", "arbitrum", "erc20_gateway", ARB_DOCS),
     KnownEntity("ethereum", "0x8315177ab297ba92a06054ce80a67ed4dbd7ed3a", "Arbitrum One: Bridge", "bridge",
                 "arbitrum", "arbitrum", "bridge", ARB_DOCS),
+    # Across intent bridge: destination is chosen per deposit, so only heuristic matching applies here.
+    KnownEntity("ethereum", "0x5c7bcd6e7de5423a257d81b442095a1a6ced35c5", "Across: Ethereum SpokePool", "bridge",
+                "across", None, "spoke_pool", ACROSS_DOCS),
 )
 
 _BY_KEY = {(e.chain, e.address): e for e in BRIDGES}

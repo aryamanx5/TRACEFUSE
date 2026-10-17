@@ -9,7 +9,7 @@
 | GitHub REST search | public mentions (issues/PRs, commits; code with token) | keyless / `GITHUB_TOKEN` | 10/min unauth, 30/min auth, code 10/min; ≤6 queries per investigation | cached 24 h | exact-string only; mentions ≠ ownership/culpability |
 | OFAC SDN.XML | sanctions listings | public | ~29 MB | bundled snapshot (published 10/15/2026, sha256 `0dee…`/XML hash stored), refresh endpoint | listing ≠ technical control; point in time |
 | OFAC Recent Actions | designation/removal history | public, allowlisted URLs | — | 2022-04-14, 2022-08-08, 2022-11-08, 2025-03-21 imported | action parsed from notice section headings |
-| Curated registry | bridge contract roles | official docs | — | static, cited | roles only |
+| Curated registry | bridge contract roles (OP, Base, Arbitrum, Across SpokePools) | official docs (incl. docs.across.to/reference/contract-addresses) | — | static, cited | roles only; Across event layouts read from live decoded logs 2026-10-18 |
 | Historical case cassette | Ronin replay | recorded keyless responses | — | recorded 2026-10-17; `historical_case` origin | provider labels reflect recording time |
 
 ## Historical case authenticity — Ronin Bridge (2022)

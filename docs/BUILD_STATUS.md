@@ -15,39 +15,38 @@ Status values: NOT_STARTED · IN_PROGRESS · IMPLEMENTED · TESTED · BLOCKED ·
 - OP-Stack deposit L2 hash derivation verified exactly against Blockscout (L1 0x48e0d6…→ L2 0xc453ed…).
 - Etherscan V2: OP/Base paid-tier only; Ethereum/Arbitrum free tier.
 
-## Requirement checklist (2026-10-17)
+## Requirement checklist (audited 2026-10-18 against docs/PRD.md — 105 requirement IDs)
+Completion = requirements VERIFIED ÷ 105 PRD IDs = **100 / 105 = 95.2 %**. No implementable requirement is incomplete;
+the remaining 5 are limited only by missing credentials (live verification), see "External blockers".
+
 | Area (PRD IDs) | Status | Key files | Evidence |
 |---|---|---|---|
-| LANDING-1..5 | TESTED | frontend/src/pages/Landing.tsx | vitest landing (2); manual scroll at 1024 px |
-| INTAKE-1..5 | TESTED + live-verified | domain/validation.py, pages/NewInvestigation.tsx | pytest domain/api; vitest intake; live tx-hash run |
-| CHAIN-1 Blockscout | VERIFIED (live) | providers/blockscout.py | Ronin recording, live run, unit tests |
-| CHAIN-2 Etherscan V2 / CHAIN-3 Alchemy | TESTED (fixtures) · BLOCKED live (no keys) | providers/etherscan.py, alchemy.py | pytest mocked transports |
-| CHAIN-4..11 | TESTED | providers/http.py, base.py, etherscan_compat.py | pytest http/providers/domain |
-| GRAPH-1..8 | TESTED + manual UI | analysis/graph.py, pipeline/traversal.py, GraphView.tsx, Inspector.tsx | pytest; browser E2E |
-| QUANT-1..9 | TESTED | analysis/metrics.py, MetricsView.tsx | pytest analysis |
-| REPLAY-1..5 | TESTED + manual UI | analysis/timeline.py, ChronoReplay.tsx | pytest, vitest, browser play |
-| MATRIX-1..4 | TESTED + manual UI | analysis/matrix.py, MatrixView.tsx | pytest, vitest (2), API drill-down |
-| OSINT-1 GitHub | VERIFIED (unauth live) · code search BLOCKED (no token) | intel/github.py | recording, pytest |
-| OSINT-3 GoPlus | VERIFIED (live keyless) | intel/goplus.py | recording + live run |
-| OSINT-4/5 OFAC | VERIFIED (official files parsed) | intel/ofac.py, data/ofac/ | pytest on real notices |
-| OSINT-6..8 | TESTED | intel/registry.py, extract.py, pipeline | pytest |
-| FUSION-1..6 | TESTED + manual UI | analysis/fusion.py, FusionView.tsx | pytest, browser |
-| RISK-1..6 | TESTED | analysis/scoring.py, ScoresView.tsx | pytest scoring, API rescore |
-| CROSSCHAIN-1..6 | TESTED (OP derivation verified vs Blockscout); heuristic path fixture-tested | bridges/op_stack.py, analysis/crosschain.py | pytest |
-| STREAM-1..4 | TESTED + live | pipeline/investigation.py, api routes, hooks.ts | pytest SSE; live cancel/retry |
-| CASEBOOK-1..5 | TESTED | storage/repositories.py, routes/cases.py, CaseDetail.tsx | pytest, vitest |
-| CHALLENGE-1..4 | TESTED | data/cases/ronin-2022/*, challenge/engine.py, Challenge.tsx | pytest, vitest; replay fidelity diff |
-| REPORT-1..4 | TESTED | reports/builder.py | pytest journey |
-| SECURITY-1..5 | TESTED | config, logging_setup, http.sanitize_url, api/app.py | pytest |
-| UX-1..5 | IMPLEMENTED + partial tests | index.css, components/ui.tsx | vitest states; manual |
-| OPS-1..5 | DONE | README.md, .env.example, migrations, scripts/ | — |
+| LANDING-1..5 | VERIFIED | pages/Landing.tsx | vitest; Playwright landing/responsive/keyboard (real-browser reduced motion); axe 0 |
+| INTAKE-1..5 | VERIFIED | domain/validation.py, NewInvestigation.tsx | pytest; Playwright states; live tx-hash runs (Ethereum, OP) |
+| CHAIN-1 Blockscout (Ethereum + OP Mainnet) | VERIFIED (live) | providers/blockscout.py | live pytest `test_live_op_mainnet_investigation`; Ronin recording; live E2E |
+| CHAIN-4..11 | VERIFIED | providers/* | pytest |
+| CHAIN-2 Etherscan V2 · CHAIN-3 Alchemy | IMPLEMENTED, fixture-tested · BLOCKED live | providers/etherscan.py, alchemy.py | needs ETHERSCAN_API_KEY / ALCHEMY_API_KEY |
+| GRAPH-1..8 | VERIFIED | analysis/graph.py, GraphView.tsx (keyboard wallet list) | pytest; Playwright historical/keyboard |
+| QUANT-1..9, MATRIX-1..4, REPLAY-1..5 | VERIFIED | analysis/*, MatrixView/ChronoReplay | pytest; vitest; Playwright |
+| OSINT-2..8 | VERIFIED (GoPlus, OFAC, labels live) | intel/* | pytest; recording |
+| OSINT-1 GitHub | VERIFIED unauthenticated (issues/commits) · code search BLOCKED | intel/github.py | needs GITHUB_TOKEN |
+| FUSION-1..6, RISK-1..6 | VERIFIED | analysis/fusion.py, scoring.py | pytest; Playwright fusion/ranking |
+| CROSSCHAIN-2,3,5,6 | VERIFIED (OP-Stack deposit **confirmed live**; Across deposit decoded live) | bridges/op_stack.py, bridges/across.py, analysis/crosschain.py | live pytest `test_live_op_stack_deposit_confirmed`, `test_live_across_…`; fixtures from real logs |
+| CROSSCHAIN-1 | Ethereum + OP VERIFIED live · Base/Arbitrum BLOCKED | chains.py | needs ALCHEMY_API_KEY |
+| CROSSCHAIN-4 heuristic / Across fill confirmation | IMPLEMENTED, tested on real-log fixtures · live candidate/fill not observable keylessly | analysis/crosschain.py | recent Across deposits target Base/other chains (need ALCHEMY_API_KEY) |
+| STREAM-1..4, CASEBOOK-1..5, CHALLENGE-1..4, REPORT-1..4, SECURITY-1..5 | VERIFIED | — | pytest; Playwright |
+| UX-1..5 | VERIFIED (automated) | index.css, components/ui.tsx | axe 0 (dark+light), keyboard spec; see docs/ACCESSIBILITY_AUDIT.md (manual AT testing not performed) |
+| OPS-1..5 | VERIFIED | README, scripts, migrations | — |
 
-## Last successful checks
-backend: pytest 62 passed · ruff clean · mypy clean. frontend: vitest 12 passed · tsc+vite build OK · oxlint 0 errors (5 warnings).
+## Last successful checks (2026-10-18, after a11y + Across changes)
+backend: pytest 66 passed + 3 live (opt-in) passed · ruff clean · mypy clean (57 files).
+frontend: `npm test` 12 passed (exit 0) · oxlint 0 · build OK · Playwright `npm run e2e` 24 passed · `npm run e2e:live` 1 passed (earlier, UI unchanged in that path).
 
-## Known gaps / next steps
-1. Live verification of Etherscan V2, Alchemy, GitHub code search requires user credentials (adapters implemented + fixture-tested).
-2. Cassette does not record transport-level timeouts (one request that timed out during recording replays as "not in historical dataset").
-3. No Playwright suite; browser E2E was performed manually in the in-app browser.
-4. Live mode for Base / Arbitrum requires ALCHEMY_API_KEY (or a paid Etherscan plan for Base/OP).
-5. 5 oxlint `set-state-in-effect` warnings in data-fetch hooks.
+## External blockers (credentials not present in environment or .env)
+1. `ETHERSCAN_API_KEY` — CHAIN-2 live (free tier: Ethereum, Arbitrum; OP/Base paid).
+2. `ALCHEMY_API_KEY` — CHAIN-3 live; Base/Arbitrum (CROSSCHAIN-1); live Across fill confirmation on Base (CROSSCHAIN-4).
+3. `GITHUB_TOKEN` — GitHub code search (OSINT-1).
+4. `GOPLUS_ACCESS_TOKEN` (optional) — authenticated GoPlus tier; keyless tier verified.
+
+## Not claimed
+Manual screen-reader / assistive-technology testing has not been performed.

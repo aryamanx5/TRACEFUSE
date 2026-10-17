@@ -67,7 +67,7 @@ export default function Status() {
         </button>}>
         {!checks && <p className="text-sm text-dim">Sends one minimal request to each configured source.</p>}
         <ul className="space-y-1 text-sm">
-          {checks?.map((c) => <li key={c.source}><span className={c.ok ? 'text-ok' : 'text-danger'}>{c.ok ? '●' : '●'}</span> <span className="mono">{c.source}</span> {c.ok ? `${c.ms ?? ''}${c.ms ? ' ms' : ''}` : `${c.kind}: ${c.message}`}</li>)}
+          {checks?.map((c) => <li key={c.source}><span className={c.ok ? 'text-ok' : 'text-danger'} aria-hidden>●</span> <strong className={c.ok ? 'text-ok' : 'text-danger'}>{c.ok ? 'OK' : 'Failed'}</strong> <span className="mono">{c.source}</span> {c.ok ? `${c.ms ?? ''}${c.ms ? ' ms' : ''}` : `${c.kind}: ${c.message}`}</li>)}
         </ul>
       </Section>
       <Section title="Observed provider health (since server start)">

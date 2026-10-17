@@ -12,7 +12,7 @@
   --line-strong: #2c3d5e;
   --text: #e6edf7;
   --text-dim: #9fb0c8;
-  --text-faint: #6f819c;
+  --text-faint: #8a9bb6;  /* ≥5.7:1 on every dark surface (WCAG AA) */
   --signal: #2dd4bf;      /* teal: verified on-chain fact */
   --signal-2: #22d3ee;    /* cyan */
   --intel: #a78bfa;       /* violet: external assertion */
@@ -20,6 +20,7 @@
   --analyst: #f472b6;     /* pink: analyst hypothesis */
   --danger: #f87171;
   --ok: #34d399;
+  --on-signal: #04131a;  /* text on signal-coloured buttons */
   --focus: #67e8f9;
   --radius: 10px;
   --shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6);
@@ -36,12 +37,15 @@
     --line-strong: #c3cfdf;
     --text: #0f172a;
     --text-dim: #3b4a63;
-    --text-faint: #64748b;
-    --signal: #0d9488;
-    --signal-2: #0891b2;
-    --intel: #7c3aed;
-    --hypo: #b45309;
+    --text-faint: #4b5869;
+    --signal: #0b6b63;
+    --signal-2: #0b6a85;
+    --intel: #6d28d9;
+    --hypo: #92400e;
     --analyst: #be185d;
+    --ok: #036c4f;
+    --danger: #b91c1c;
+    --on-signal: #ffffff;
     --focus: #0e7490;
     --shadow: 0 10px 30px -18px rgb(15 23 42 / 0.35);
     color-scheme: light;
@@ -49,8 +53,9 @@
 }
 :root[data-theme="light"] {
   --bg: #f6f8fb; --bg-elev: #ffffff; --panel: #ffffff; --panel-2: #eef2f8; --line: #dbe3ee; --line-strong: #c3cfdf;
-  --text: #0f172a; --text-dim: #3b4a63; --text-faint: #64748b; --signal: #0d9488; --signal-2: #0891b2;
-  --intel: #7c3aed; --hypo: #b45309; --analyst: #be185d; --focus: #0e7490; color-scheme: light;
+  --text: #0f172a; --text-dim: #3b4a63; --text-faint: #4b5869; --signal: #0b6b63; --signal-2: #0b6a85;
+  --intel: #6d28d9; --hypo: #92400e; --analyst: #be185d; --ok: #036c4f; --danger: #b91c1c; --on-signal: #ffffff;
+  --focus: #0e7490; color-scheme: light;
 }
 
 @theme inline {
@@ -97,7 +102,7 @@ body {
 }
 .tf-btn:hover:not(:disabled) { border-color: var(--signal); }
 .tf-btn:disabled { opacity: .5; cursor: not-allowed; }
-.tf-btn-primary { background: linear-gradient(135deg, var(--signal), var(--signal-2)); color: #04131a; border-color: transparent; }
+.tf-btn-primary { background: linear-gradient(135deg, var(--signal), var(--signal-2)); color: var(--on-signal); border-color: transparent; }
 .tf-btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
 .tf-btn-danger { border-color: color-mix(in srgb, var(--danger) 60%, transparent); color: var(--danger); }
 .tf-input, .tf-select, .tf-textarea {
@@ -124,3 +129,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 }
+
+/* links inside running text must not rely on colour alone (WCAG 1.4.1) */
+p a:not(.tf-btn), li a:not(.tf-btn), dd a:not(.tf-btn) { text-decoration: underline; text-underline-offset: 2px; }

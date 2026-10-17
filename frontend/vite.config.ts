@@ -24,6 +24,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    include: ['src/**/*.test.{ts,tsx}'], // e2e/ and e2e-live/ are Playwright suites
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,

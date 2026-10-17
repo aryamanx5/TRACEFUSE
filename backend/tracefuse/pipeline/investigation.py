@@ -181,6 +181,9 @@ class InvestigationRunner:
         if cfg.crosschain.enabled:
             await self.emit("crosschain", "started", "checking bridge interactions")
             inter = find_bridge_interactions(trav.transfers, node_meta, chain.key)
+            # bounded tracing: the seed transaction and seed wallets' bridge interactions go first
+            seed_tx = seed.value if seed.kind == "tx_hash" else None
+            inter.sort(key=lambda it: (it["tx_hash"] != seed_tx, it["sender"] not in seeds, it["timestamp"] or 0))
             reg = self.clients.registry
 
             def ready(c):

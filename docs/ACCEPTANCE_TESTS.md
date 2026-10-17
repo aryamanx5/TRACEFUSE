@@ -35,3 +35,6 @@ browser during the build session (see TEST_RESULTS.md for dates/results).
 | SECURITY-1..5 | Secrets never in URLs/cache/exports; redaction; XML entities rejected; unsafe link schemes blocked | pytest `test_secret_redaction`, `test_cache_marks…`, `test_sdn_rejects_xml_entities`; vitest `formats exact amounts and blocks unsafe links` |
 | UX-2 | Offline / rate-limited / unconfigured errors named honestly | vitest `names offline, rate-limited and unconfigured errors honestly` |
 | OPS-3 | `/api/health`, `/api/ready` | pytest `test_health_meta` |
+| UX-1, UX-3 | axe 0 violations dark+light on all routes/tabs; keyboard tabs/dialog/skip-link/wallet list | Playwright `e2e/a11y.spec.ts`, `e2e/keyboard.spec.ts` |
+| CROSSCHAIN-3 (Across) | deposit decoded from FundsDeposited; FilledRelay matched by (originChainId, depositId) only | pytest `test_across_decode_real_deposit_and_fill`, `test_across_unconfigured_destination_is_unresolved_not_guessed`; live `test_live_across_…` |
+| CHAIN-1 (OP), CROSSCHAIN-3 (live) | live OP investigation; live confirmed L1→L2 deposit | `TRACEFUSE_LIVE_TESTS=1 pytest tests/test_live.py` |

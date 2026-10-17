@@ -242,3 +242,49 @@ async def test_crosschain_op_stack_deterministic():
     assert out["status"] == "confirmed"
     assert out["links"][0]["destination_tx"] == "0xc453ed6b3a324c1af24db2565adee833f0c1e0c2fc5165528f3b5c86b5e9fb1e"
     assert out["links"][0]["recipient"] is not None
+
+
+def _fixture_logs(name):
+    import json
+
+    from tests.conftest import FIXTURES
+    from tracefuse.providers.base import LogRecord
+    return [LogRecord(address=lg["address"]["hash"].lower(), topics=[t.lower() for t in lg["topics"] if t], data=lg["data"],
+                      log_index=lg["index"], block_hash=lg.get("block_hash"), block_number=lg.get("block_number"),
+                      tx_hash=lg["transaction_hash"]) for lg in json.loads((FIXTURES / name).read_text())["items"]]
+
+
+def test_across_decode_real_deposit_and_fill():
+    from tracefuse.bridges import across
+    dep = next(d for d in (across.decode_deposit(1, lg.address, lg.topics, lg.data)
+                           for lg in _fixture_logs("across_deposit_eth_logs.json")) if d)
+    assert (dep.destination_chain_id, dep.deposit_id) == (8453, 4790238)
+    assert dep.recipient == dep.depositor == "0x507c8b1574c45b28012dfb718df6a8c7a47f21f5"
+    assert (dep.input_amount, dep.output_amount) == (72800000000000000, 72791073415604511)
+    fill_logs = _fixture_logs("across_fill_op_logs.json")
+    # real OP fill belongs to origin chain 4663 / depositId 478004 — it must match only that deposit
+    matching = across.AcrossDeposit(4663, 10, 478004, "0x577fa9e4c609f37682141d4812ee0d5bc846736d",
+                                    "0x577fa9e4c609f37682141d4812ee0d5bc846736d", "", "", 0, 0, 0)
+    assert any(across.is_fill_for(matching, 10, lg.address, lg.topics, lg.data) for lg in fill_logs)
+    other = across.AcrossDeposit(1, 10, 478004, "", "", "", "", 0, 0, 0)  # same depositId, different origin
+    assert not any(across.is_fill_for(other, 10, lg.address, lg.topics, lg.data) for lg in fill_logs)
+
+
+async def test_across_unconfigured_destination_is_unresolved_not_guessed():
+    from tracefuse.bridges import across
+    pool = across.SPOKE_POOLS[1]
+    t = mk(1, pool, 72800000000000000, T0, tx="0xe838e6c3f670f6bf819c3b6baf67163f8c83f91fead7d91ad0db6d6c090c7335")
+    inter = find_bridge_interactions([t], {}, "ethereum")
+    assert inter and inter[0]["bridge_family"] == "across"
+    logs = _fixture_logs("across_deposit_eth_logs.json")
+
+    async def logs_fn(c, h):
+        return logs
+
+    tracer = CrossChainTracer(logs=logs_fn, tx=None, address_transfers=None, block_at=None,  # type: ignore[arg-type]
+                              ready=lambda c: c.key != "base", window_hours=48, tolerance=0.05, max_candidates=5,
+                              target_chains=["optimism"])
+    out = (await tracer.trace(CHAINS["ethereum"], inter))[0]
+    assert out["destination_chain"] == "base" and out["status"] == "unresolved"
+    assert any("ALCHEMY_API_KEY" in e for e in out["evidence_against"])
+    assert out["links"][0]["recipient"] == "0x507c8b1574c45b28012dfb718df6a8c7a47f21f5"

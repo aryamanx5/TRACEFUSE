@@ -104,20 +104,28 @@ export function Section({ title, actions, children }: { title: string; actions?:
   )
 }
 
+/** Modal dialog: native showModal() gives focus containment, Escape-to-close and an inert background;
+ *  focus returns to the element that opened it. */
 export function Dialog({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
   useEffect(() => {
     const d = ref.current
-    if (!d) return
-    if (open && !d.open) d.showModal?.()
-    if (!open && d.open) d.close?.()
+    if (!open || !d) return
+    const opener = document.activeElement as HTMLElement | null
+    if (typeof d.showModal === 'function') d.showModal()
+    else d.setAttribute('open', '') // environments without <dialog> support (e.g. jsdom)
+    return () => {
+      if (typeof d.close === 'function' && d.open) d.close()
+      opener?.focus?.()
+    }
   }, [open])
   if (!open) return null
   return (
-    <dialog ref={ref} onClose={onClose} aria-label={title}
-      className="m-auto max-w-lg rounded-xl border border-line bg-panel p-0 text-ink backdrop:bg-black/60" open>
+    <dialog ref={ref} onCancel={(e) => { e.preventDefault(); onClose() }} aria-labelledby={titleId}
+      className="m-auto max-w-lg rounded-xl border border-line bg-panel p-0 text-ink backdrop:bg-black/60">
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
-        <h2 className="font-semibold">{title}</h2>
+        <h2 id={titleId} className="font-semibold">{title}</h2>
         <button type="button" className="text-dim hover:text-ink" onClick={onClose} aria-label="Close dialog">✕</button>
       </div>
       <div className="p-4">{children}</div>
@@ -139,22 +147,36 @@ export function Toast({ message, onDone }: { message: string | null; onDone: () 
   )
 }
 
+/** WAI-ARIA tabs: one tab stop (roving tabindex); Arrow/Home/End move selection and focus. */
 export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs: { id: T; label: string; count?: number }[]; value: T; onChange: (t: T) => void; label: string }) {
+  const refs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const go = (i: number) => {
+    const t = tabs[(i + tabs.length) % tabs.length]
+    onChange(t.id)
+    refs.current[t.id]?.focus()
+  }
   return (
     <div role="tablist" aria-label={label} className="flex flex-wrap gap-1 border-b border-line">
       {tabs.map((t) => (
         <button
           key={t.id}
+          ref={(el) => {
+            refs.current[t.id] = el
+          }}
           role="tab"
           type="button"
           id={`tab-${t.id}`}
           aria-selected={value === t.id}
           aria-controls={`panel-${t.id}`}
+          tabIndex={value === t.id ? 0 : -1}
           onClick={() => onChange(t.id)}
           onKeyDown={(e) => {
             const i = tabs.findIndex((x) => x.id === value)
-            if (e.key === 'ArrowRight') onChange(tabs[(i + 1) % tabs.length].id)
-            if (e.key === 'ArrowLeft') onChange(tabs[(i - 1 + tabs.length) % tabs.length].id)
+            const keys: Record<string, number> = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }
+            if (e.key in keys) {
+              e.preventDefault()
+              go(keys[e.key])
+            }
           }}
           className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${value === t.id ? 'border-signal text-ink' : 'border-transparent text-dim hover:text-ink'}`}
         >
