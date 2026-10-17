@@ -107,7 +107,7 @@ function FragmentRow({ s, sel, expanded, onToggle, onSelect }: { s: Score; sel: 
         </td>
         <td className="text-[11px]">{top.map((t) => t.label.split('(')[0]).join(' · ') || '—'}</td>
         <td className="text-[11px]">{Math.round(s.coverage * 100)}%</td>
-        <td><button className="text-xs text-signal2" aria-expanded={expanded} onClick={onToggle}>{expanded ? 'Hide' : 'Explain'}</button></td>
+        <td><button className="text-xs text-signal2" aria-expanded={expanded} aria-label={`${expanded ? 'Hide' : 'Explain'} score for ${s.address}`} onClick={onToggle}>{expanded ? 'Hide' : 'Explain'}</button></td>
       </tr>
       {expanded && (
         <tr>

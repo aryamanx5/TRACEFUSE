@@ -54,7 +54,10 @@ export default function EvidenceView({ invId, onSelect, reviews }: { invId: stri
           <tbody>
             {items.map((e) => (
               <tr key={e.id} className="cursor-pointer" onClick={() => onSelect({ kind: 'evidence', evidence: e })}>
-                <td><span className={`tf-badge status-${e.assertion_status}`}>{e.kind.replace(/_/g, ' ')}</span></td>
+                <td>
+                  <button type="button" className={`tf-badge status-${e.assertion_status}`} aria-label={`Inspect ${e.kind.replace(/_/g, ' ')}: ${e.title}`}
+                    onClick={(ev) => { ev.stopPropagation(); onSelect({ kind: 'evidence', evidence: e }) }}>{e.kind.replace(/_/g, ' ')}</button>
+                </td>
                 <td className="mono">{short(e.subject_address ?? e.subject_tx)}</td>
                 <td><ExtLink href={e.source_url}>{e.title.slice(0, 70)}</ExtLink><br /><span className="text-[11px] text-faint">{e.source}</span></td>
                 <td className="max-w-md text-[11px] text-dim">{(e.snippet ?? '').slice(0, 180)}</td>

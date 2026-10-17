@@ -13,8 +13,12 @@ Target: WCAG 2.1 AA.
 | Responsive (`e2e/responsive.spec.ts`) | 1280 px and Pixel 7: no horizontal overflow on all routes and the workspace | pass |
 | Manual code review | landmarks, headings, labels, live regions, colour-only indicators | issues below fixed |
 
-**Not performed:** manual testing with real assistive technology (VoiceOver / NVDA / JAWS) and real-user testing.
-Automated scans cannot establish full screen-reader compatibility; those results are not claimed.
+**Manual review performed (finalization pass):** a screen-reader–oriented review of accessible names, roles, states and
+keyboard reachability for every interactive control, using Chromium's accessibility tree (Playwright role queries) and
+code inspection. Findings are in the second defects table below.
+
+**Not performed:** testing with real assistive technology (VoiceOver / NVDA / JAWS) and testing with disabled users.
+Neither the axe scans nor the accessibility-tree review establish full screen-reader compatibility; that is not claimed.
 
 ## Defects found and fixed
 | Issue | WCAG | Fix |
@@ -30,6 +34,15 @@ Automated scans cannot establish full screen-reader compatibility; those results
 | Inspector updates not announced | 4.1.3 | Polite live region ("Inspector shows wallet …") |
 | Provider probe status shown by colour dot only | 1.4.1 | "OK" / "Failed" text added |
 | Skip-link target not focusable | 2.4.1 | `<main tabIndex={-1}>` |
+
+## Defects found by the manual accessibility-tree review (finalization) and fixed
+| Issue | WCAG | Fix | Test |
+|---|---|---|---|
+| Evidence rows opened details only via mouse (`<tr onClick>`) | 2.1.1 | Focusable "Inspect <kind>: <title>" button per row | `keyboard.spec.ts` evidence test |
+| Dozens of identical "Explain" buttons in the ranking | 2.4.6 / 4.1.2 | Names include the address ("Explain score for 0x…") | uniqueness asserted in `keyboard.spec.ts` |
+| Hidden-address "show" buttons had no context | 2.4.6 | "Show 0x… in views again" | vitest + `historical.spec.ts` |
+| Repeated "Delete note" buttons | 2.4.6 | Name includes the note text | `casebook.spec.ts` |
+| Challenge radio groups labelled only "Choices" | 1.3.1 | Legend is the checkpoint title | `challenge.spec.ts` |
 
 ## Known limitations
 - Cytoscape canvases are visual only; keyboard and screen-reader users use the wallet / relationship lists, the Inspector, Matrix Mode (focusable cells) and tables, which expose the same data.

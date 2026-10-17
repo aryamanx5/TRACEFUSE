@@ -103,6 +103,78 @@ async def test_live_across_deposit_decoded_destination_reported(live_services):
         if x["bridge_family"] == "across" and x["destination_chain"] is None:
             assert x["status"] in ("unresolved", "candidate")
     assert c["destination_chain"] == "base" and c["links"][0]["deposit_id"] == 4790238
-    has_key = bool(os.environ.get("ALCHEMY_API_KEY"))
+    from tracefuse.config import Settings
+
+    has_key = Settings().credential_status()["ALCHEMY_API_KEY"]
     if not has_key:
         assert c["status"] == "unresolved" and any("ALCHEMY_API_KEY" in e for e in c["evidence_against"])
+
+
+# --- Credential-gated live checks for the remaining PRD requirements --------------------------------------------
+# Each test skips (with the variable name) when its credential is absent; it never substitutes fixtures.
+
+def _needs(var: str):
+    from tracefuse.config import Settings
+
+    present = Settings().credential_status().get(var, False)  # environment or backend/.env, presence only
+    return pytest.mark.skipif(not present, reason=f"{var} not set — live verification blocked")
+
+
+def _small_cfg(provider: str, chain: str = "ethereum") -> InvestigationConfig:
+    return InvestigationConfig(
+        seed="0x098B716B8Aaf21512996dC57EB0615e2383E2f96", chain=chain, provider=provider, max_hops=1, max_branching=2,
+        max_transfers_per_address=250, time_start=datetime(2022, 3, 23, 13, 0, tzinfo=UTC),
+        time_end=datetime(2022, 3, 23, 15, 0, tzinfo=UTC),
+        osint={"github": False, "goplus": False, "ofac": True, "blockscout_labels": False}, crosschain={"enabled": False},
+    )
+
+
+@_needs("ETHERSCAN_API_KEY")
+async def test_live_etherscan_v2_provider(live_services):
+    """CHAIN-2: Ethereum transfers via Etherscan API V2 (the 173,600 ETH exploit transfer must be present)."""
+    iid = await _run(live_services, _small_cfg("etherscan"))
+    inv = live_services.investigations.get(iid)
+    assert inv["status"] in ("completed", "partial") and inv["provider"] == "etherscan", inv["error"]
+    ts = live_services.investigations.load_transfers(iid)
+    assert any(t.tx_hash == "0xc28fad5e8d5e0ce6a2eaf67b6687be5d58113e16be590824d6cfa1a94467d0b7" for t in ts)
+
+
+@_needs("ALCHEMY_API_KEY")
+async def test_live_alchemy_provider_ethereum(live_services):
+    """CHAIN-3: Ethereum transfers via alchemy_getAssetTransfers."""
+    iid = await _run(live_services, _small_cfg("alchemy"))
+    inv = live_services.investigations.get(iid)
+    assert inv["status"] in ("completed", "partial") and inv["provider"] == "alchemy", inv["error"]
+    assert live_services.investigations.count_transfers(iid) > 0
+
+
+@_needs("ALCHEMY_API_KEY")
+async def test_live_alchemy_base_and_across_fill(live_services):
+    """CROSSCHAIN-1 (Base) + CROSSCHAIN-4: the real Across deposit to Base is checked for its FilledRelay on Base."""
+    cfg = InvestigationConfig(
+        seed="0xe838e6c3f670f6bf819c3b6baf67163f8c83f91fead7d91ad0db6d6c090c7335", chain="ethereum", max_hops=1,
+        max_branching=1, time_start=datetime(2026, 10, 17, 20, 0, tzinfo=UTC), time_end=datetime(2026, 10, 17, 20, 15, tzinfo=UTC),
+        osint={"github": False, "goplus": False, "ofac": False, "blockscout_labels": True},
+        crosschain={"enabled": True, "target_chains": ["base"]},
+    )
+    iid = await _run(live_services, cfg)
+    cc = live_services.investigations.load_artifact(iid, "crosschain", [])
+    seed = [c for c in cc if c["source_tx"] == cfg.seed.lower()]
+    assert seed and seed[0]["destination_chain"] == "base"
+    # record the genuine outcome: confirmed when Base shows the matching FilledRelay, otherwise an explained gap
+    assert seed[0]["status"] in ("confirmed", "unresolved")
+    assert seed[0]["status"] == "confirmed" or seed[0]["evidence_against"]
+
+
+@_needs("GITHUB_TOKEN")
+async def test_live_github_code_search(live_services):
+    """OSINT-1: authenticated GitHub code search returns exact-match mentions with provenance."""
+    from tracefuse.chains import CHAINS
+    from tracefuse.providers.base import FetchContext
+
+    gh = live_services.live.github
+    assert gh.authenticated and "code" in gh.endpoints()
+    res = await gh.search("code", "0x098B716B8Aaf21512996dC57EB0615e2383E2f96", FetchContext())
+    evs = gh.to_evidence("code", "0x098b716b8aaf21512996dc57eb0615e2383e2f96", CHAINS["ethereum"].key, res, FetchContext())
+    assert res.status == 200
+    assert all(e.source == "github-code" and e.source_url for e in evs)

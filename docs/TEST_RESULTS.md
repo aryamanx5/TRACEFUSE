@@ -70,3 +70,14 @@ vitest 12 passed · oxlint 0 warnings/errors · vite build OK · Playwright `npm
 Defects fixed: 11 accessibility issues (docs/ACCESSIBILITY_AUDIT.md); Vitest scope; bridge interactions now traced seed-first
 (bounded tracing previously could skip the seed transaction's own bridge deposit); Across deposits decoded from the
 documented `FundsDeposited` event instead of guessing the destination chain.
+
+## Finalization pass (2026-10-18, branch `tracefuse-finalization`)
+| Command | Result |
+|---|---|
+| `cd backend && .venv/bin/pytest -q` | 66 passed, 7 skipped (live, opt-in) |
+| `TRACEFUSE_LIVE_TESTS=1 .venv/bin/pytest tests/test_live.py -rs -k "etherscan or alchemy or github"` | 4 skipped — ETHERSCAN_API_KEY / ALCHEMY_API_KEY / GITHUB_TOKEN not set (no live service called) |
+| ruff / mypy | clean / no issues (57 files) |
+| `cd frontend && npm test` · lint · build | 12 passed (exit 0) · 0 · OK |
+| `npm run e2e` | **25 passed** |
+Secret scan of diff + untracked files: no credentials; `backend/.env`, `.env`, `backend/var/` git-ignored.
+Manual accessibility-tree review fixed 5 defects (see ACCESSIBILITY_AUDIT.md). No real assistive-technology testing performed.

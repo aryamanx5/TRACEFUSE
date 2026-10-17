@@ -53,6 +53,23 @@ test('workspace tabs follow the WAI-ARIA pattern; wallets and cells are keyboard
   expect(r.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([])
 })
 
+test('evidence records and score explanations are reachable and distinctly named for keyboard/screen-reader users', async ({ page }) => {
+  await openHistoricalCase(page)
+  await page.locator('#tab-evidence').click()
+  const inspect = page.getByRole('tabpanel').getByRole('button', { name: /^Inspect sanctions listing: OFAC SDN/ }).first()
+  await inspect.focus()
+  await page.keyboard.press('Enter')
+  const inspector = page.getByRole('complementary', { name: 'Inspector' })
+  await expect(inspector.getByText(/OFAC SDN: LAZARUS GROUP/).first()).toBeVisible()
+  await expect(page.getByText(/^Inspector shows evidence: OFAC SDN/)).toBeAttached()
+  await page.locator('#tab-scores').click()
+  await expect(page.getByRole('tabpanel').getByRole('button', { name: /^Explain score for/ }).first()).toBeVisible()
+  const names = await page.getByRole('tabpanel').getByRole('button', { name: /^Explain score for/ }).evaluateAll(
+    (els) => els.map((e) => e.getAttribute('aria-label')))
+  expect(names.length).toBeGreaterThan(5)
+  expect(new Set(names).size).toBe(names.length)
+})
+
 test('modal dialog traps focus, closes on Escape and returns focus', async ({ page }) => {
   await page.goto('/app/cases')
   await page.getByLabel('New case').fill('Keyboard dialog case')

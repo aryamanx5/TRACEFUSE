@@ -93,7 +93,7 @@ function ChallengeRun({ id }: { id: string }) {
             <form className="flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); void submit(cp.id) }}>
               {cp.type === 'choice' && cp.choices ? (
                 <fieldset className="w-full space-y-1">
-                  <legend className="sr-only">Choices</legend>
+                  <legend className="sr-only">{cp.title}: choose one answer</legend>
                   {cp.choices.map((c) => (
                     <label key={c} className="flex items-center gap-2 text-sm">
                       <input type="radio" name={cp.id} value={c} checked={answers[cp.id] === c} onChange={() => setAnswers({ ...answers, [cp.id]: c })} />

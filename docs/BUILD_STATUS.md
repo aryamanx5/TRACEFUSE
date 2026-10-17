@@ -38,9 +38,21 @@ the remaining 5 are limited only by missing credentials (live verification), see
 | UX-1..5 | VERIFIED (automated) | index.css, components/ui.tsx | axe 0 (dark+light), keyboard spec; see docs/ACCESSIBILITY_AUDIT.md (manual AT testing not performed) |
 | OPS-1..5 | VERIFIED | README, scripts, migrations | — |
 
-## Last successful checks (2026-10-18, after a11y + Across changes)
-backend: pytest 66 passed + 3 live (opt-in) passed · ruff clean · mypy clean (57 files).
-frontend: `npm test` 12 passed (exit 0) · oxlint 0 · build OK · Playwright `npm run e2e` 24 passed · `npm run e2e:live` 1 passed (earlier, UI unchanged in that path).
+## Last successful checks (2026-10-18, finalization — branch `tracefuse-finalization`)
+backend: pytest 66 passed, 7 skipped (opt-in live; 4 of them additionally credential-gated) · ruff clean · mypy clean.
+Earlier in this pass: `TRACEFUSE_LIVE_TESTS=1` live tests — OP Mainnet investigation, OP-Stack deposit confirmed, Across deposit decoded — 3 passed.
+frontend: `npm test` 12 passed (exit 0) · oxlint 0 · build OK · Playwright `npm run e2e` **25 passed** (incl. axe dark/light, keyboard, dialog, reduced motion, responsive mobile).
+Manual demo smoke (in-app browser): historical Ronin case opens, workspace renders with historical banner, exports and ChronoReplay.
+
+## Outstanding requirements → required live check (all blocked: no credentials present in environment or backend/.env)
+| Requirement | Credential | Ready-to-run check |
+|---|---|---|
+| CHAIN-2 Etherscan V2 | `ETHERSCAN_API_KEY` | `test_live_etherscan_v2_provider` |
+| CHAIN-3 Alchemy | `ALCHEMY_API_KEY` | `test_live_alchemy_provider_ethereum` |
+| CROSSCHAIN-1 Base/Arbitrum | `ALCHEMY_API_KEY` | `test_live_alchemy_base_and_across_fill` |
+| CROSSCHAIN-4 live fill/candidate | `ALCHEMY_API_KEY` | `test_live_alchemy_base_and_across_fill` |
+| OSINT-1 code search | `GITHUB_TOKEN` | `test_live_github_code_search` |
+Run: `cd backend && TRACEFUSE_LIVE_TESTS=1 .venv/bin/pytest tests/test_live.py -v -rs` (tests skip with the variable name when absent).
 
 ## External blockers (credentials not present in environment or .env)
 1. `ETHERSCAN_API_KEY` — CHAIN-2 live (free tier: Ethereum, Arbitrum; OP/Base paid).

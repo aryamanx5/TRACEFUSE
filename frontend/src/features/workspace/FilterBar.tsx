@@ -51,7 +51,7 @@ export default function FilterBar({ filter, setFilter, assets }: { filter: Filte
           <ul className="space-y-1">
             {filter.hide.map((h) => (
               <li key={h} className="flex items-center justify-between gap-2"><span className="mono">{short(h)}</span>
-                <button className="text-xs text-signal2" onClick={() => setFilter({ ...filter, hide: filter.hide.filter((x) => x !== h) })}>show</button></li>
+                <button className="text-xs text-signal2" aria-label={`Show ${h} in views again`} onClick={() => setFilter({ ...filter, hide: filter.hide.filter((x) => x !== h) })}>show</button></li>
             ))}
           </ul>
           <button className="tf-btn mt-2" onClick={() => setFilter({ ...filter, assets: [], kinds: [], hide: [], minAmount: '', includeZero: false, includeUnrecognised: true })}>Reset filters</button>

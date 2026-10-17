@@ -212,7 +212,7 @@ describe('filters and states', () => {
     const user = userEvent.setup()
     render(<FilterBar filter={f} setFilter={(n) => { f = n }} assets={[{ asset_key: 'native', symbol: 'ETH', recognised: true, raw: '1', amount: '1', count: 1 }]} />)
     await user.click(screen.getByText('Filters'))
-    await user.click(screen.getByRole('button', { name: 'show' }))
+    await user.click(screen.getByRole('button', { name: /Show 0x1+ in views again/ }))
     expect(f.hide).toEqual([])
   })
   it('names offline, rate-limited and unconfigured errors honestly', () => {

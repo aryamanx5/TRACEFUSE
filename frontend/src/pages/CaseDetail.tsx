@@ -105,7 +105,7 @@ export default function CaseDetail() {
               <li key={n.id} className="rounded-md border border-line p-2 text-sm">
                 <p className="text-xs text-faint">{n.target_type}{n.target_id ? ` · ${short(n.target_id, 8)}` : ''} · {fmtTime(n.updated_at)}</p>
                 <p className="whitespace-pre-wrap">{n.body}</p>
-                <button className="mt-1 text-xs text-danger hover:underline" aria-label="Delete note" onClick={() => void act(() => api(`/api/cases/${c.id}/notes/${n.id}`, { method: 'DELETE' }), 'Note deleted')}>Delete</button>
+                <button className="mt-1 text-xs text-danger hover:underline" aria-label={`Delete note: ${n.body.slice(0, 40)}`} onClick={() => void act(() => api(`/api/cases/${c.id}/notes/${n.id}`, { method: 'DELETE' }), 'Note deleted')}>Delete</button>
               </li>
             ))}
           </ul>
