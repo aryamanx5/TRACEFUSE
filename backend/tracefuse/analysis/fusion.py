@@ -74,7 +74,7 @@ def build_fusion(
 
     # evidence-derived relationships (dedup entities by source item)
     for ev in evidence:
-        etype, rtype, conf = _EV_REL.get(ev.kind, ("source", "public_report", "weak"))
+        etype, rtype, _conf = _EV_REL.get(ev.kind, ("source", "public_report", "weak"))
         src_key = ev.source_item_id or ev.source_url or ev.id
         sid = f"{etype}:{src_key}"
         if sid not in entities:
@@ -142,9 +142,10 @@ def build_fusion(
                          "method": cc.get("method"), "caveats": [cc.get("uncertainty")] if cc.get("uncertainty") else [],
                          "first_ts": cc.get("source_timestamp")})
 
-    for s in split_sets:
+    for si, s in enumerate(split_sets):
         for r in s["recipients"]:
-            rels.append({"id": f"rel:split:{s['sender']}:{r}:{s['asset_key']}", "type": "coordinated_split",
+            # one sender can have several split sets (e.g. 500 ETH and 750 ETH tranches) to the same recipient
+            rels.append({"id": f"rel:split:{si}:{s['sender']}:{r}:{s['asset_key']}", "type": "coordinated_split",
                          "assertion_status": "algorithmic_inference", "source": wallet(s["sender"]), "target": wallet(r),
                          "confidence": "weak", "evidence": {"transfer_ids": s["transfer_ids"], "amount_low": s["amount_low"],
                                                             "amount_high": s["amount_high"], "symbol": s["symbol"]},
@@ -163,6 +164,10 @@ def build_fusion(
                      "evidence": {"rationale": a["rationale"], "relation": a["relation"], "created_at": a["created_at"]},
                      "method": "analyst-entered hypothesis", "caveats": ["Unverified analyst hypothesis."], "first_ts": None})
 
+    unique: dict[str, dict[str, Any]] = {}
+    for rel in rels:
+        unique.setdefault(rel["id"], rel)  # identical assertions repeated by a source collapse to one edge
+    rels = list(unique.values())
     return {"entities": list(entities.values()), "relationships": rels, "conflicts": detect_conflicts(evidence, node_meta),
             "relationship_types": RELATIONSHIP_TYPES}
 

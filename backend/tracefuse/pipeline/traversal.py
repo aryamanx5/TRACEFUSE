@@ -78,6 +78,7 @@ class Traverser:
         self.partial = False
         self._sem = asyncio.Semaphore(3)
         self.info_cache: dict[str, AddressInfo] = {}
+        self.fetch_errors: dict[str, ProviderError] = {}
 
     def static_labels(self, address: str) -> list[dict[str, Any]]:
         out = []
@@ -108,6 +109,10 @@ class Traverser:
         for lb in st.labels:
             if lb.get("category") in registry.SERVICE_CATEGORIES:
                 return f"{lb.get('category')}: {lb.get('label')}"
+        if st.is_contract:
+            proto = [lb for lb in st.labels if lb.get("category") == "protocol"]
+            if proto:  # labelled protocol contract (DEX pool, lending market, ...): high-activity infrastructure
+                return f"protocol contract: {proto[0].get('label')}"
         return None
 
     async def _enrich(self, st: NodeState) -> None:
@@ -159,9 +164,9 @@ class Traverser:
             self.transfers = dedupe_transfers(self.transfers)
             # register all observed counterparties as nodes
             for t in self.transfers:
-                for a in (t.from_address, t.to_address):
-                    if a and a not in self.nodes:
-                        self.nodes[a] = NodeState(a, hop + 1, "observed", ExpansionStatus.NOT_EXPANDED)
+                for maybe in (t.from_address, t.to_address):
+                    if maybe and maybe not in self.nodes:
+                        self.nodes[maybe] = NodeState(maybe, hop + 1, "observed", ExpansionStatus.NOT_EXPANDED)
             nxt: dict[str, list[str]] = {d: [] for d in directions}
             for d in directions:
                 for a in frontier[d]:
@@ -217,12 +222,14 @@ class Traverser:
         try:
             return await self._fetch(st)
         except BudgetExhausted as exc:
+            self.fetch_errors[st.address] = exc
             st.status = ExpansionStatus.BUDGET_EXHAUSTED
             st.note = exc.message
             self.partial = True
             self.warnings.append(f"{st.address}: {exc.message}")
             return []
         except ProviderError as exc:
+            self.fetch_errors[st.address] = exc
             st.status = ExpansionStatus.PROVIDER_ERROR
             st.note = f"{exc.kind}: {exc.message}"
             self.partial = True

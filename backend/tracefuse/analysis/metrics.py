@@ -6,6 +6,7 @@ None of these metrics alone indicates malicious intent or common ownership.
 
 from __future__ import annotations
 
+import itertools
 import math
 import statistics
 from collections import defaultdict
@@ -212,10 +213,10 @@ def amount_distribution(transfers: list[Transfer], asset_key: str) -> dict[str, 
     logs = [math.log10(float(v)) for v in vals]
     lo, hi = math.floor(min(logs)), math.ceil(max(logs))
     hi = max(hi, lo + 1)
-    bins = [{"from": f"1e{e}", "to": f"1e{e + 1}", "count": 0} for e in range(lo, hi)]
+    counts = [0] * (hi - lo)
     for x in logs:
-        idx = min(int(math.floor(x)) - lo, len(bins) - 1)
-        bins[idx]["count"] += 1
+        counts[min(math.floor(x) - lo, len(counts) - 1)] += 1
+    bins = [{"from": f"1e{e}", "to": f"1e{e + 1}", "count": counts[e - lo]} for e in range(lo, hi)]
     srt = sorted(vals)
     return {"asset_key": asset_key, "count": len(vals), "bins": bins, "scale": "log10",
             "min": format_decimal(srt[0]), "max": format_decimal(srt[-1]), "median": format_decimal(srt[len(srt) // 2])}
@@ -231,9 +232,10 @@ def split_sets(transfers: list[Transfer], tolerance: float = 0.01, min_size: int
     for (sender, asset), ts in by.items():
         ts.sort(key=lambda t: t.raw_int)
         group: list[Transfer] = []
-        for t in ts + [None]:  # type: ignore[list-item]
-            if t is not None and group and relative_difference(group[0].raw_int, t.raw_int) <= tolerance:
-                group.append(t)
+        candidates: list[Transfer | None] = [*ts, None]
+        for cand in candidates:
+            if cand is not None and group and relative_difference(group[0].raw_int, cand.raw_int) <= tolerance:
+                group.append(cand)
                 continue
             if len(group) >= min_size and len({g.to_address for g in group}) >= 2:
                 out.append({
@@ -243,7 +245,7 @@ def split_sets(transfers: list[Transfer], tolerance: float = 0.01, min_size: int
                     "transfer_ids": [g.id for g in group], "tolerance": tolerance,
                     "method": f"sorted amounts within {tolerance:.0%} relative difference of the group minimum",
                 })
-            group = [t] if t is not None else []
+            group = [cand] if cand is not None else []
     return out
 
 
@@ -295,7 +297,7 @@ def pass_through_links(transfers: list[Transfer], max_delay_seconds: int = 6 * 3
 
 def temporal_deltas(transfers: list[Transfer]) -> dict[str, Any]:
     stamps = sorted(t.ts for t in transfers if t.ts is not None)
-    deltas = [b - a for a, b in zip(stamps, stamps[1:], strict=False)]
+    deltas = [b - a for a, b in itertools.pairwise(stamps)]
     if not deltas:
         return {"count": 0}
     return {"count": len(deltas), "median_seconds": statistics.median(deltas), "min_seconds": min(deltas),

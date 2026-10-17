@@ -37,6 +37,7 @@ from .errors import (
     ProviderBlocked,
     ProviderError,
     ProviderNotFound,
+    ProviderOffline,
     ProviderRateLimited,
     ProviderTimeout,
     ReplayMiss,
@@ -44,7 +45,8 @@ from .errors import (
 
 log = logging.getLogger(__name__)
 
-SECRET_PARAMS = {"apikey", "api_key", "key", "token", "access_token"}
+# Only credential-bearing parameters; NOT generic names like "token" (Blockscout uses token=<contract> as a filter).
+SECRET_PARAMS = {"apikey", "api_key", "key", "access_token"}
 
 
 def sanitize_url(url: str, params: dict[str, Any] | None = None) -> str:
@@ -180,6 +182,8 @@ class Interaction:
     content_type: str
     text: str
     recorded_at: str
+    # Transport-level failure observed while recording ("timeout" | "network_error"); None for HTTP responses.
+    error: str | None = None
 
     def key(self) -> str:
         return f"{self.method} {self.url} {self.body_hash}"
@@ -199,6 +203,8 @@ class Cassette:
         k = it.key()
         if k not in self._by_key:
             self.order.append(k)
+        elif it.error is not None and self._by_key[k].error is None:
+            return  # never let a later transport failure overwrite a recorded response
         self._by_key[k] = it
 
     def lookup(self, method: str, url: str, body_hash: str) -> Interaction | None:
@@ -235,12 +241,34 @@ class RecordingTransport(httpx.AsyncBaseTransport):
         self.inner = inner
         self.cassette = cassette
 
+    def _record_failure(self, request: httpx.Request, kind: str) -> None:
+        body = json.loads(request.content.decode()) if request.content else None
+        self.cassette.add(
+            Interaction(
+                method=request.method,
+                url=sanitize_url(str(request.url)),
+                body_hash=_body_hash(body),
+                status=0,
+                content_type="",
+                text="",
+                recorded_at=datetime.now(UTC).isoformat(),
+                error=kind,
+            )
+        )
+
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        response = await self.inner.handle_async_request(request)
-        content = await response.aread()
+        try:
+            response = await self.inner.handle_async_request(request)
+            content = await response.aread()
+        except httpx.TimeoutException:
+            self._record_failure(request, "timeout")
+            raise
+        except httpx.TransportError:
+            self._record_failure(request, "network_error")
+            raise
         body = json.loads(request.content.decode()) if request.content else None
         text = content.decode(response.encoding or "utf-8", errors="replace")
-        if 200 <= response.status_code < 300:
+        if response.status_code < 500:  # 2xx and client errors (e.g. 429) so replays follow the same path
             self.cassette.add(
                 Interaction(
                     method=request.method,
@@ -269,6 +297,12 @@ class ReplayTransport(httpx.AsyncBaseTransport):
         if it is None:
             self.misses.append(f"{request.method} {url}")
             raise _ReplayMissError(f"not recorded: {request.method} {url}")
+        # Reproduce recorded transport failures as the same failure class — a recorded timeout is a
+        # timeout, distinct from a request that was never recorded (ReplayMiss).
+        if it.error == "timeout":
+            raise httpx.ReadTimeout(f"recorded timeout at {it.recorded_at}", request=request)
+        if it.error is not None:
+            raise httpx.ConnectError(f"recorded {it.error} at {it.recorded_at}", request=request)
         return httpx.Response(
             status_code=it.status,
             headers={"content-type": it.content_type, "x-tracefuse-recorded-at": it.recorded_at},
@@ -347,6 +381,7 @@ class ResilientHttp:
         self._pause_until: dict[str, float] = {}
         self._rates = {
             "blockscout": settings.rate_blockscout_rps,
+            "blockscout-rpc": 0.08,  # public Etherscan-compatible RPC: ~10 requests / 2 minutes observed
             "etherscan": settings.rate_etherscan_rps,
             "alchemy": settings.rate_alchemy_rps,
             "goplus": settings.rate_goplus_rps,
@@ -355,6 +390,10 @@ class ResilientHttp:
 
     async def aclose(self) -> None:
         await self._client.aclose()
+
+    def paused(self, family: str) -> bool:
+        """True while an upstream told us its rate window for this provider family is exhausted."""
+        return self.mode != "replay" and self._pause_until.get(family, 0) > time.monotonic()
 
     def _bucket(self, provider: str) -> TokenBucket:
         family = provider.split(":")[0]
@@ -376,6 +415,7 @@ class ResilientHttp:
         budget: CallBudget | None = None,
         expect: Literal["json", "text"] = "json",
         timeout: float | None = None,
+        retries: int | None = None,
     ) -> HttpResult:
         family = provider.split(":")[0]
         health = self.health.get(family)
@@ -390,12 +430,16 @@ class ResilientHttp:
                 data = json.loads(text) if expect == "json" else text
                 return HttpResult(data, status, safe_url, fetched_at, from_cache=True)
 
+        if self.settings.tracefuse_offline and self.mode != "replay":
+            offline = ProviderOffline(family, "network access disabled (TRACEFUSE_OFFLINE=1); live providers unavailable")
+            self._note_error(health, offline)
+            raise offline
         if budget is not None and self.mode != "replay":
             budget.consume(family)
 
         attempt = 0
         last_exc: ProviderError | None = None
-        max_retries = 0 if self.mode == "replay" else self.settings.http_max_retries
+        max_retries = 0 if self.mode == "replay" else (self.settings.http_max_retries if retries is None else retries)
         while attempt <= max_retries:
             if self.mode != "replay":
                 await self._bucket(provider).acquire()
@@ -415,8 +459,13 @@ class ResilientHttp:
             except _ReplayMissError as exc:
                 health.errors += 1
                 raise ReplayMiss(family, str(exc)) from exc
-            except httpx.TimeoutException:
-                last_exc = ProviderTimeout(family, f"timed out after {self.settings.http_timeout_seconds}s")
+            except httpx.TimeoutException as exc:
+                last_exc = ProviderTimeout(
+                    family,
+                    f"timed out ({exc}) during historical collection"
+                    if self.mode == "replay"
+                    else f"timed out after {self.settings.http_timeout_seconds}s",
+                )
             except httpx.TransportError as exc:
                 last_exc = ProviderError(family, f"network error: {type(exc).__name__}")
             else:

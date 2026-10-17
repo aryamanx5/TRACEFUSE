@@ -63,7 +63,7 @@ class HypothesisIn(BaseModel):
 
 @router.get("")
 def list_cases(s: Services = Depends(services)) -> list[dict[str, Any]]:
-    return s.cases.list()
+    return s.cases.list_cases()
 
 
 @router.post("", status_code=201)
@@ -74,7 +74,7 @@ def create_case(body: CaseCreate, s: Services = Depends(services)) -> dict[str, 
 @router.get("/{case_id}")
 def get_case(case_id: str, s: Services = Depends(services)) -> dict[str, Any]:
     c = s.cases.get(case_id)
-    return {**c, "investigations": s.investigations.list(case_id), "notes": s.cases.notes(case_id),
+    return {**c, "investigations": s.investigations.list_investigations(case_id), "notes": s.cases.notes(case_id),
             "bookmarks": s.cases.bookmarks(case_id), "reviews": s.cases.reviews(case_id),
             "decisions": s.cases.decisions(case_id), "hypotheses": s.cases.relationships(case_id)}
 
@@ -148,7 +148,7 @@ def delete_hypothesis(case_id: str, rel_id: str, s: Services = Depends(services)
 
 @router.get("/{case_id}/report.html")
 def case_report(case_id: str, download: bool = False, s: Services = Depends(services)) -> HTMLResponse:
-    invs = s.investigations.list(case_id)
+    invs = s.investigations.list_investigations(case_id)
     done = [i for i in invs if i["status"] in ("completed", "partial", "cancelled")]
     if not done:
         raise HTTPException(409, "case has no finished investigation to report on")

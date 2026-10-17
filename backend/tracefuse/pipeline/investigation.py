@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from typing import Any
 
@@ -79,7 +80,7 @@ class InvestigationRunner:
                 repo.save_artifact(self.id, "nodes", {a: n.to_dict() for a, n in traverser.nodes.items()})
             await self.emit("lifecycle", "warning", "investigation cancelled by analyst; partial data retained",
                             {"transfers": len(traverser.transfers) if traverser else 0})
-            repo.update(self.id, warnings=self.warnings + ["cancelled before completion"])
+            repo.update(self.id, warnings=[*self.warnings, "cancelled before completion"])
             repo.set_status(self.id, InvestigationStatus.CANCELLED)
             raise
         except InvalidSeedError as exc:
@@ -147,9 +148,17 @@ class InvestigationRunner:
                          info_budget=self.s.settings.max_address_info_lookups_per_investigation, mixer_labels=mixer_labels)
         self._traverser = trav
         await trav.run(seeds)
+        seed_errors = [trav.fetch_errors[a] for a in seeds if a in trav.fetch_errors]
+        if seed_errors and len(seed_errors) == len(seeds) and not trav.transfers and not seed_transfers:
+            # Nothing could be retrieved for any seed: this is a failure, not a partial result.
+            raise seed_errors[0]
         trav.transfers = dedupe_transfers(trav.transfers + seed_transfers)
         self.warnings.extend(trav.warnings)
         self.partial |= trav.partial
+        for w in trav.warnings[:20]:
+            await self.emit("acquire", "warning", w)
+        if len(trav.warnings) > 20:
+            await self.emit("acquire", "warning", f"{len(trav.warnings) - 20} further warning(s) in the investigation record")
         await self.emit("acquire", "completed", f"{len(trav.transfers)} unique transfer(s), {len(trav.nodes)} address(es)",
                         {"transfers": len(trav.transfers), "addresses": len(trav.nodes), "provider_calls": self.budget.used})
 
@@ -379,10 +388,8 @@ class JobManager:
     async def wait(self, investigation_id: str) -> None:
         t = self.tasks.get(investigation_id)
         if t is not None:
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await t
-            except asyncio.CancelledError:
-                pass
 
     async def shutdown(self) -> None:
         for t in list(self.tasks.values()):

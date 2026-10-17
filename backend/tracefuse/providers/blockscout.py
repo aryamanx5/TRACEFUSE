@@ -30,13 +30,16 @@ from .base import (
     token_asset,
     ts_from_iso,
 )
-from .errors import ProviderNotFound, ProviderUnsupported
+from .errors import (
+    ProviderBadResponse,
+    ProviderNotFound,
+    ProviderRateLimited,
+    ProviderTimeout,
+    ProviderUnsupported,
+    ReplayMiss,
+)
 from .etherscan_compat import (
     etherscan_json_check,
-    paginate_account_action,
-    parse_tokentx,
-    parse_txlist,
-    parse_txlistinternal,
 )
 
 PAGE_SIZE = 500
@@ -136,7 +139,8 @@ class BlockscoutProvider(ChainProvider):
         return True  # keyless
 
     def supports_chain(self, chain: ChainConfig) -> bool:
-        return chain.blockscout_base is not None
+        # Instances that challenge scripted clients (verified 2026-10-17) are not offered as usable.
+        return chain.blockscout_base is not None and chain.blockscout_scripted_access
 
     def _base(self, chain: ChainConfig) -> str:
         if not chain.blockscout_base:
@@ -146,12 +150,14 @@ class BlockscoutProvider(ChainProvider):
     def _pid(self, chain: ChainConfig) -> str:
         return f"blockscout:{chain.key}"
 
-    async def _rpc(self, chain: ChainConfig, params: dict[str, Any], ctx: FetchContext, ttl: int | None = None):
+    async def _rpc(self, chain: ChainConfig, params: dict[str, Any], ctx: FetchContext, ttl: int | None = None,
+                   retries: int | None = None):
         return await self.http.request(
-            self._pid(chain),
+            f"blockscout-rpc:{chain.key}",
             "GET",
             f"{self._base(chain)}/api",
             params=params,
+            retries=retries,
             cache_ttl=ttl if ttl is not None else self.settings.cache_ttl_chain_seconds,
             json_check=etherscan_json_check(self.name),
             budget=ctx.budget,
@@ -171,16 +177,55 @@ class BlockscoutProvider(ChainProvider):
     async def block_at_time(
         self, chain: ChainConfig, when: datetime, closest: Literal["before", "after"], ctx: FetchContext
     ) -> int:
-        res = await self._rpc(
-            chain,
-            {"module": "block", "action": "getblocknobytime", "timestamp": int(when.timestamp()), "closest": closest},
-            ctx,
-            ttl=30 * 24 * 3600,
-        )
+        if self.http.paused("blockscout-rpc"):
+            return await self._block_search_v2(chain, when, closest, ctx)
+        try:
+            res = await self._rpc(
+                chain,
+                {"module": "block", "action": "getblocknobytime", "timestamp": int(when.timestamp()), "closest": closest},
+                ctx,
+                ttl=30 * 24 * 3600,
+                retries=0,
+            )
+        except (ProviderRateLimited, ProviderBadResponse, ReplayMiss):
+            return await self._block_search_v2(chain, when, closest, ctx)
         r = res.data.get("result")
         if isinstance(r, dict):
             return parse_int(r.get("blockNumber"))
         return parse_int(r)
+
+    async def _block_ts(self, chain: ChainConfig, n: int, ctx: FetchContext) -> float:
+        res = await self._v2(chain, f"/blocks/{n}", ctx)
+        ts = ts_from_iso(res.data.get("timestamp"))
+        if ts is None:
+            raise ProviderBadResponse(self.name, f"block {n} has no timestamp")
+        return ts.timestamp()
+
+    async def _block_search_v2(self, chain: ChainConfig, when: datetime, closest: str, ctx: FetchContext) -> int:
+        """Fallback when the RPC endpoint is rate limited: interpolation search over v2 block timestamps."""
+        head = await self._v2(chain, "/blocks", ctx, {"type": "block"})
+        items = head.data.get("items") or []
+        if not items:
+            raise ProviderBadResponse(self.name, "cannot determine chain head")
+        hi = parse_int(items[0].get("height"))
+        lo = 1
+        target = when.timestamp()
+        t_lo, t_hi = await self._block_ts(chain, lo, ctx), await self._block_ts(chain, hi, ctx)
+        if target <= t_lo:
+            return lo
+        if target >= t_hi:
+            return hi
+        for _ in range(40):
+            if hi - lo <= 1:
+                break
+            guess = lo + int((target - t_lo) / max(t_hi - t_lo, 1e-9) * (hi - lo))
+            guess = min(max(guess, lo + 1), hi - 1)
+            tg = await self._block_ts(chain, guess, ctx)
+            if tg <= target:
+                lo, t_lo = guess, tg
+            else:
+                hi, t_hi = guess, tg
+        return lo if closest == "before" else (lo if t_lo == target else hi)
 
     async def address_transfers(
         self,
@@ -363,13 +408,25 @@ class BlockscoutProvider(ChainProvider):
         else:
             warnings.append("token transfers of this transaction exceed the page cap; list truncated")
         transfers.extend(self._parse_v2_token_transfers(chain, token_items, prov))
-        # internal value transfers of this tx via the RPC API
-        ires = await self._rpc(chain, {"module": "account", "action": "txlistinternal", "txhash": tx_hash}, ctx)
-        items = ires.data.get("result") if isinstance(ires.data.get("result"), list) else []
-        for it in items:
-            it.setdefault("hash", tx_hash)
-            it.setdefault("blockNumber", block)
-        transfers.extend(parse_txlistinternal(chain, items, ctx.provenance(self.name, ires)))
+        # internal value transfers of this tx (REST v2; the RPC endpoint's public limit is far lower)
+        internal_items: list[dict[str, Any]] = []
+        iparams: dict[str, Any] | None = None
+        try:
+            for _ in range(V2_MAX_PAGES):
+                ires = await self._v2(chain, f"/transactions/{tx_hash}/internal-transactions", ctx, iparams)
+                internal_items.extend(ires.data.get("items") or [])
+                nxt = ires.data.get("next_page_params")
+                if not nxt:
+                    break
+                iparams = nxt
+        except (ProviderTimeout, ProviderBadResponse, ProviderRateLimited) as exc:
+            # Non-essential for seed resolution: address-level streams also carry internal transfers.
+            warnings.append(f"internal transfers of the seed transaction unavailable ({exc.kind}: {exc.message})")
+        for it in internal_items:
+            it.setdefault("transaction_hash", tx_hash)
+            it.setdefault("block_number", block)
+            it.setdefault("timestamp", d.get("timestamp"))
+        transfers.extend(self._parse_v2_internal(chain, internal_items, prov))
         return TxFetchResult(
             chain=chain.key,
             tx_hash=tx_hash,

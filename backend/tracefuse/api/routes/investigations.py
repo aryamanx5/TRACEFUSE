@@ -53,7 +53,7 @@ def validate(req: ValidateRequest, s: Services = Depends(services)) -> dict[str,
 
 
 @router.post("/investigations", status_code=202)
-def start(req: StartRequest, s: Services = Depends(services), jm: JobManager = Depends(jobs)) -> dict[str, Any]:
+async def start(req: StartRequest, s: Services = Depends(services), jm: JobManager = Depends(jobs)) -> dict[str, Any]:
     cfg = req.config
     if cfg.chain not in CHAINS:
         raise HTTPException(422, f"Unsupported chain '{cfg.chain}'")
@@ -81,7 +81,7 @@ def start(req: StartRequest, s: Services = Depends(services), jm: JobManager = D
 
 @router.get("/investigations")
 def list_investigations(case_id: str | None = None, s: Services = Depends(services)) -> list[dict[str, Any]]:
-    return s.investigations.list(case_id)
+    return s.investigations.list_investigations(case_id)
 
 
 @router.get("/investigations/{inv_id}")
@@ -95,21 +95,21 @@ def get_investigation(inv_id: str, s: Services = Depends(services), jm: JobManag
 
 
 @router.post("/investigations/{inv_id}/cancel")
-def cancel(inv_id: str, s: Services = Depends(services), jm: JobManager = Depends(jobs)) -> dict[str, Any]:
+async def cancel(inv_id: str, s: Services = Depends(services), jm: JobManager = Depends(jobs)) -> dict[str, Any]:
     s.investigations.get(inv_id)
     return {"cancelled": jm.cancel(inv_id)}
 
 
 @router.post("/investigations/{inv_id}/retry", status_code=202)
-def retry(inv_id: str, s: Services = Depends(services), jm: JobManager = Depends(jobs)) -> dict[str, Any]:
+async def retry(inv_id: str, s: Services = Depends(services), jm: JobManager = Depends(jobs)) -> dict[str, Any]:
     old = s.investigations.get(inv_id)
     if old["data_origin"] != DataOrigin.LIVE.value:
         raise HTTPException(409, "historical investigations are re-opened from the historical case, not retried live")
-    return start(StartRequest(config=InvestigationConfig.model_validate(old["config"]), case_id=old["case_id"]), s, jm)
+    return await start(StartRequest(config=InvestigationConfig.model_validate(old["config"]), case_id=old["case_id"]), s, jm)
 
 
 @router.delete("/investigations/{inv_id}", status_code=204)
-def delete(inv_id: str, s: Services = Depends(services), jm: JobManager = Depends(jobs)) -> Response:
+async def delete(inv_id: str, s: Services = Depends(services), jm: JobManager = Depends(jobs)) -> Response:
     jm.cancel(inv_id)
     s.investigations.delete(inv_id)
     return Response(status_code=204)
@@ -118,7 +118,7 @@ def delete(inv_id: str, s: Services = Depends(services), jm: JobManager = Depend
 @router.get("/investigations/{inv_id}/events.json")
 def events_json(inv_id: str, after: int = 0, s: Services = Depends(services)) -> list[dict[str, Any]]:
     s.investigations.get(inv_id)
-    return [e.model_dump(mode="json") for e in s.events.list(inv_id, after)]
+    return [e.model_dump(mode="json") for e in s.events.list_events(inv_id, after)]
 
 
 @router.get("/investigations/{inv_id}/events")
@@ -132,7 +132,7 @@ async def events_sse(inv_id: str, after: int = 0, last_event_id: str | None = He
         yield "retry: 3000\n\n"
         while True:
             waiter = jm.bus.waiter(inv_id)
-            evs = s.events.list(inv_id, seq)
+            evs = s.events.list_events(inv_id, seq)
             for e in evs:
                 seq = e.seq
                 yield f"id: {e.seq}\nevent: progress\ndata: {e.model_dump_json()}\n\n"

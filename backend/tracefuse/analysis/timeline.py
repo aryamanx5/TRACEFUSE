@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from datetime import UTC, datetime
 from typing import Any
 
@@ -10,7 +11,7 @@ from .graph import aggregate_edges
 from .metrics import graph_stats
 
 
-def timeline(transfers: list[Transfer], buckets: int = 60, gap_factor: float = 10.0) -> dict[str, Any]:
+def timeline(transfers: list[Transfer], buckets: int = 60, gap_factor: float = 20.0, min_gap_seconds: float = 12 * 3600) -> dict[str, Any]:
     timed = sorted((t for t in transfers if t.ts is not None), key=lambda t: (t.ts or 0, t.id))
     missing = [t.id for t in transfers if t.ts is None]
     events = [{
@@ -28,12 +29,12 @@ def timeline(transfers: list[Transfer], buckets: int = 60, gap_factor: float = 1
     for t in timed:
         idx = min(int(((t.ts or 0) - t0) / width), buckets - 1)
         bks[idx]["count"] += 1
-    deltas = [(b.ts or 0) - (a.ts or 0) for a, b in zip(timed, timed[1:], strict=False)]
+    deltas = [(b.ts or 0) - (a.ts or 0) for a, b in itertools.pairwise(timed)]
     gaps = []
     if deltas:
         med = sorted(deltas)[len(deltas) // 2]
-        threshold = max(med * gap_factor, 3600.0)
-        for a, b in zip(timed, timed[1:], strict=False):
+        threshold = max(med * gap_factor, min_gap_seconds)
+        for a, b in itertools.pairwise(timed):
             d = (b.ts or 0) - (a.ts or 0)
             if d >= threshold:
                 gaps.append({"start": a.ts, "end": b.ts, "seconds": d})
@@ -41,7 +42,7 @@ def timeline(transfers: list[Transfer], buckets: int = 60, gap_factor: float = 1
         "events": events,
         "buckets": bks,
         "gaps": gaps,
-        "gap_threshold_note": "gap = inter-event interval ≥ max(10× median interval, 1 hour); no data, not necessarily no activity",
+        "gap_threshold_note": "gap = inter-event interval ≥ max(20× median interval, 12 hours); no recorded data, not necessarily no activity",
         "missing_timestamps": len(missing),
         "missing_timestamp_ids": missing[:100],
         "range": {"start": t0, "end": t1,

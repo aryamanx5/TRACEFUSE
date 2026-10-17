@@ -1,0 +1,61 @@
+import { RONIN, expect, openHistoricalCase, selectWallet, test } from './fixtures'
+
+test('create, edit, save, reopen and delete a case', async ({ page }) => {
+  await page.goto('/app/cases')
+  await page.getByLabel('New case').fill('E2E – Lazarus exposure review')
+  await page.getByRole('button', { name: 'Create case' }).click()
+  await expect(page).toHaveURL(/\/app\/cases\/case_/)
+  const caseUrl = page.url()
+
+  await page.getByRole('button', { name: 'Rename / edit' }).click()
+  await page.getByLabel('Title').fill('E2E – renamed case')
+  await page.getByLabel('Description').fill('Checks exposure to OFAC-listed wallets.')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('heading', { name: 'E2E – renamed case' })).toBeVisible()
+  await page.getByLabel('Review state').selectOption('in_review')
+  await page.getByLabel('New note').fill('Follow the 500 ETH tranches of 2022-03-28.')
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.getByLabel('New decision').fill('Escalate to exchange compliance.')
+  await page.getByRole('button', { name: 'Record' }).click()
+  await expect(page.getByText('Escalate to exchange compliance.')).toBeVisible()
+
+  // reopen from a fresh page load: everything comes from the database
+  await page.goto('/app/cases')
+  await page.getByLabel('Search').fill('renamed')
+  await page.getByRole('link', { name: 'E2E – renamed case' }).click()
+  await expect(page).toHaveURL(caseUrl)
+  await expect(page.getByText('Checks exposure to OFAC-listed wallets.')).toBeVisible()
+  await expect(page.getByLabel('Review state')).toHaveValue('in_review')
+  await expect(page.getByText('Follow the 500 ETH tranches of 2022-03-28.')).toBeVisible()
+  await page.getByRole('button', { name: 'Delete note' }).click()
+  await expect(page.getByText('Follow the 500 ETH tranches of 2022-03-28.')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Delete case…' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete case' }).click()
+  await expect(page).toHaveURL(/\/app\/cases$/)
+  await expect(page.getByRole('link', { name: 'E2E – renamed case' })).toHaveCount(0)
+  await page.goto(caseUrl)
+  await expect(page.getByRole('alert')).toContainText('Not found')
+})
+
+test('workspace bookmarks, evidence reviews and UI state persist in the case', async ({ page }) => {
+  await openHistoricalCase(page)
+  const inspector = await selectWallet(page, RONIN)
+  await inspector.getByRole('button', { name: '☆ Bookmark' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'Bookmarked' })).toBeVisible()
+  await inspector.getByLabel('Note').fill('Seed received the 173,600 ETH exploit transfer.')
+  await inspector.getByRole('button', { name: 'Save' }).click()
+  await inspector.getByRole('button', { name: /OFAC SDN: LAZARUS GROUP/ }).click()
+  await inspector.getByLabel('Review').selectOption('accepted')
+  await expect(page.getByRole('status').filter({ hasText: 'Evidence marked accepted' })).toBeVisible()
+  await page.getByRole('tab', { name: 'Matrix' }).click()
+  await page.waitForTimeout(1200) // debounced UI-state save (800 ms)
+
+  // reload: tab + selection restored from the case record
+  await page.reload()
+  await expect(page.getByRole('tab', { name: 'Matrix' })).toHaveAttribute('aria-selected', 'true')
+  await page.getByRole('link', { name: /Ronin Bridge exploit/ }).click()
+  await expect(page.getByText(RONIN.slice(0, 12)).first()).toBeVisible()
+  await expect(page.getByText('Seed received the 173,600 ETH exploit transfer.')).toBeVisible()
+  await expect(page.getByText('accepted').first()).toBeVisible()
+})

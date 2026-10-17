@@ -1,0 +1,53 @@
+import { RONIN, expect, test } from './fixtures'
+
+test('live investigation with providers offline fails honestly and retry is real', async ({ page }) => {
+  await page.goto('/app/new')
+  await page.getByLabel(/^Seed/).fill(RONIN)
+  await expect(page.getByText('✓ Valid address')).toBeVisible()
+  await page.getByLabel('Hop depth: 2').fill('1')
+  await page.getByRole('button', { name: 'Start investigation' }).click()
+  await page.waitForURL(/\/app\/investigations\/inv_/)
+  const firstId = page.url()
+  await expect(page.locator('header').getByText('failed', { exact: true })).toBeVisible({ timeout: 30_000 })
+  const alert = page.getByRole('alert')
+  await expect(alert).toContainText(/offline/i)
+  await expect(page.getByText('Backend progress')).toBeVisible()
+  await expect(page.getByText(/provider failure/)).toBeVisible()
+  // no fabricated data: the failed run exposes no analysis tabs
+  await expect(page.getByRole('tab', { name: /Wallet graph/ })).toHaveCount(0)
+  await alert.getByRole('button', { name: 'Retry' }).click()
+  await expect(page).not.toHaveURL(firstId)
+  await expect(page.locator('header').getByText('failed', { exact: true })).toBeVisible({ timeout: 30_000 })
+})
+
+test('validation and unavailable providers are explained', async ({ page }) => {
+  await page.goto('/app/new')
+  await page.getByLabel(/^Seed/).fill('0x1234')
+  await expect(page.getByText(/Hex value has 4 digits/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start investigation' })).toBeDisabled()
+  await page.getByLabel(/^Seed/).fill('bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh')
+  await expect(page.getByText(/Bitcoin address/)).toBeVisible()
+  await expect(page.getByRole('option', { name: 'Base Mainnet (unconfigured)' })).toBeDisabled()
+  await expect(page.getByRole('option', { name: 'Arbitrum One (unconfigured)' })).toBeDisabled()
+  const forced = await page.request.post('/api/investigations', { data: { config: { seed: RONIN, provider: 'alchemy' } } })
+  expect(forced.status()).toBe(409)
+  expect((await forced.json()).detail.kind).toBe('unconfigured')
+
+  await page.goto('/app/status')
+  await expect(page.getByText(/Offline mode \(TRACEFUSE_OFFLINE=1\)/)).toBeVisible()
+  await expect(page.locator('li', { hasText: 'ALCHEMY_API_KEY' }).getByText('unconfigured')).toBeVisible()
+  await expect(page.locator('li', { hasText: 'ETHERSCAN_API_KEY' }).getByText('unconfigured')).toBeVisible()
+  await page.getByRole('button', { name: 'Run live check' }).click()
+  await expect(page.getByText(/offline: network access disabled/).first()).toBeVisible()
+})
+
+test('backend unreachable shows an offline error and recovers on retry', async ({ page }) => {
+  await page.route('**/api/cases', (route) => route.abort('connectionrefused'))
+  await page.goto('/app/cases')
+  const alert = page.getByRole('alert')
+  await expect(alert).toContainText('Offline')
+  await page.unroute('**/api/cases')
+  await alert.getByRole('button', { name: 'Retry' }).click()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Casebook' })).toBeVisible()
+})

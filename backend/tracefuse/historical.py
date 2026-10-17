@@ -25,7 +25,7 @@ def cases_dir(s: Services) -> Path:
 
 
 def list_cases(s: Services) -> list[dict[str, Any]]:
-    out = []
+    out: list[dict[str, Any]] = []
     root = cases_dir(s)
     if not root.exists():
         return out

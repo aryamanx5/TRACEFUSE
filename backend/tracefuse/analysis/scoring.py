@@ -125,7 +125,7 @@ def score_addresses(
             return "infrastructure"
         return "candidate"
 
-    results = []
+    results: list[dict[str, Any]] = []
     for addr in addresses:
         evs = ev_by.get(addr, [])
         meta = node_meta.get(addr, {})
@@ -237,7 +237,7 @@ def score_addresses(
                 "Does not identify any natural person.",
             ] + (["Infrastructure contract: interacting with it is normal for many users."] if cat == "infrastructure" else []),
         })
-    rank = sorted(results, key=lambda r: (r["category"] != "candidate", -r["score"], r["address"]))
+    rank = sorted(results, key=lambda r: (r["category"] != "candidate", -float(r["score"]), str(r["address"])))
     for i, r in enumerate(rank, 1):
         r["rank"] = i if r["category"] == "candidate" else None
     return rank

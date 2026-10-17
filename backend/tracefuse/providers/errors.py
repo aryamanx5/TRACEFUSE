@@ -59,3 +59,7 @@ class ReplayMiss(ProviderError):
 
 class BudgetExhausted(ProviderError):
     kind = "budget_exhausted"
+
+
+class ProviderOffline(ProviderError):
+    kind = "offline"

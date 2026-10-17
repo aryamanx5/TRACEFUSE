@@ -1,0 +1,145 @@
+{
+ "id": "ronin-2022-challenge",
+ "title": "Ghost Attack: Trace the Ronin Bridge Heist",
+ "intro": "Use the historical Ronin case (recorded real data, replayed through TRACEFUSE). Each answer is checked against prepared, sourced case labels \u2014 not against the live scoring engine.",
+ "checkpoints": [
+  {
+   "id": "c1",
+   "title": "The breach",
+   "prompt": "Which transaction moved 173,600 ETH out of the bridge to the seed address? Paste the transaction hash.",
+   "type": "tx_hash",
+   "answer": "label:exploit_eth_tx",
+   "hints": [
+    "Open ChronoReplay and jump to 2022-03-23 ~13:29 UTC.",
+    "Look for an INTERNAL transfer into the seed \u2014 the bridge sends ETH via a contract call."
+   ],
+   "explanation": "A withdrawERC20For call by the exploiter caused the Ronin Bridge contract to release 173,600 ETH as an internal transfer.",
+   "evidence": [
+    "https://eth.blockscout.com/tx/0xc28fad5e8d5e0ce6a2eaf67b6687be5d58113e16be590824d6cfa1a94467d0b7"
+   ],
+   "inspect": {
+    "type": "transaction",
+    "value": "0xc28fad5e8d5e0ce6a2eaf67b6687be5d58113e16be590824d6cfa1a94467d0b7"
+   }
+  },
+  {
+   "id": "c2",
+   "title": "The victim contract",
+   "prompt": "Which contract address released the funds?",
+   "type": "address",
+   "answer": "label:bridge_contract",
+   "hints": [
+    "Select the edge carrying 173,600 ETH into the seed.",
+    "Its source node carries an explorer label."
+   ],
+   "explanation": "0x1A2a\u202654F2 is labelled 'Ronin Bridge V1' by the explorer; it is the sender of both exploit transfers.",
+   "evidence": [
+    "https://eth.blockscout.com/address/0x1A2a1c938CE3eC39b6D47113c7955bAa9DD454F2"
+   ],
+   "inspect": {
+    "type": "address",
+    "value": "0x1a2a1c938ce3ec39b6d47113c7955baa9dd454f2"
+   }
+  },
+  {
+   "id": "c3",
+   "title": "The stablecoin leg",
+   "prompt": "How many USDC were withdrawn in the second exploit transaction (whole tokens)?",
+   "type": "number",
+   "answer": "label:usdc_amount",
+   "tolerance": 0,
+   "hints": [
+    "Filter the asset to USDC in Matrix Mode.",
+    "Decimals matter: USDC uses 6."
+   ],
+   "explanation": "25,500,000 USDC (raw 25500000000000 with 6 decimals) in tx 0xed2c72ef\u2026",
+   "evidence": [
+    "https://eth.blockscout.com/tx/0xed2c72ef1a552ddaec6dd1f5cddf0b59a8f37f82bdda5257d9c7c37db7bb9b08"
+   ]
+  },
+  {
+   "id": "c4",
+   "title": "Official attribution",
+   "prompt": "Which official list entry includes the seed address?",
+   "type": "choice",
+   "choices": [
+    "OFAC SDN \u2014 LAZARUS GROUP",
+    "OFAC SDN \u2014 TORNADO CASH",
+    "No official list includes it",
+    "EU consolidated list \u2014 Lazarus"
+   ],
+   "answer": "label:sanctions_entity",
+   "hints": [
+    "Open the seed node's evidence panel and look for a sanctions listing."
+   ],
+   "explanation": "OFAC added 'Digital Currency Address - ETH 0x098B\u20262f96' to the LAZARUS GROUP entry. A listing is a legal designation, not a technical proof of key control.",
+   "evidence": [
+    "https://ofac.treasury.gov/recent-actions/20220414"
+   ]
+  },
+  {
+   "id": "c5",
+   "title": "When was it designated?",
+   "prompt": "On what date did OFAC add the address to the SDN list? (YYYY-MM-DD)",
+   "type": "text",
+   "answer": "label:designation_date",
+   "hints": [
+    "The sanctions-history evidence links to the official notice."
+   ],
+   "explanation": "2022-04-14 \u2014 three weeks after the exploit.",
+   "evidence": [
+    "https://ofac.treasury.gov/recent-actions/20220414"
+   ]
+  },
+  {
+   "id": "c6",
+   "title": "Fragmentation",
+   "prompt": "On 2022-03-28 the exploiter began splitting ETH into new wallets with equal tranches. What was the size of each first tranche (ETH)?",
+   "type": "number",
+   "answer": "label:first_tranche",
+   "tolerance": 0,
+   "hints": [
+    "The fusion graph marks near-equal splits as 'coordinated_split' (an algorithmic hypothesis).",
+    "Scrub ChronoReplay to 2022-03-28 02:30 UTC."
+   ],
+   "explanation": "Three 500 ETH transfers within six minutes to three fresh wallets \u2014 a structuring pattern, which on its own does not prove intent.",
+   "evidence": [
+    "https://eth.blockscout.com/address/0x098B716B8Aaf21512996dC57EB0615e2383E2f96"
+   ]
+  },
+  {
+   "id": "c7",
+   "title": "Into the fog",
+   "prompt": "Traced wallets deposited ETH into a privacy protocol. Paste one of its contract addresses.",
+   "type": "address",
+   "answer": "label:tornado_contracts",
+   "hints": [
+    "Look at the 'Blind spots' / privacy gaps panel.",
+    "Its label comes from an OFAC designation notice."
+   ],
+   "explanation": "Tornado Cash contracts (designated 2022-08-08, delisted 2025-03-21). Pooled deposits break the on-chain link \u2014 TRACEFUSE reports this as an unresolved gap instead of guessing withdrawals.",
+   "evidence": [
+    "https://ofac.treasury.gov/recent-actions/20220808",
+    "https://home.treasury.gov/news/press-releases/jy0916"
+   ]
+  },
+  {
+   "id": "c8",
+   "title": "What a mention means",
+   "prompt": "A GitHub issue contains the exploiter address. What does that establish by itself?",
+   "type": "choice",
+   "choices": [
+    "Only that the public text contains the address string",
+    "The issue author controls the wallet",
+    "The wallet belongs to Lazarus Group",
+    "The repository laundered the funds"
+   ],
+   "answer": "label:mention_semantics",
+   "hints": [
+    "Read the caveats on any address_mention evidence."
+   ],
+   "explanation": "Public mentions are exact-string matches with context; they are weak evidence and never proof of ownership or culpability. In this case most mentions are developer tools using the address as a sanctioned-address test vector.",
+   "evidence": []
+  }
+ ]
+}

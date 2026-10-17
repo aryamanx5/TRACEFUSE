@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "/Users/aryamansingh/Documents/FOSS_hackathon/backend/.venv/bin/uvicorn",
+      "runtimeArgs": ["tracefuse.api.app:app", "--app-dir", "/Users/aryamansingh/Documents/FOSS_hackathon/backend", "--host", "127.0.0.1", "--port", "8000"],
+      "port": 8000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "/Users/aryamansingh/Documents/FOSS_hackathon/frontend", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}

@@ -38,6 +38,11 @@ async def main(key: str) -> None:
         print("  -", w)
     print("summary:", AnalysisService(s).summary(inv["id"]))
     out = cases_dir(s) / key / "cassette.json.gz"
+    if final["status"] not in ("completed", "partial"):
+        print("collection failed; existing cassette left untouched")
+        await clients.aclose()
+        await s.aclose()
+        sys.exit(1)
     cassette.save(out)
     print(f"saved {len(cassette)} interactions -> {out} ({Path(out).stat().st_size // 1024} KiB)")
     await clients.aclose()

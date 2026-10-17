@@ -48,7 +48,9 @@ def public_view(ch: dict[str, Any], progress: dict[str, dict[str, Any]]) -> dict
                     "choices": cp.get("choices"), "hints_available": len(cp.get("hints", [])),
                     "hints": cp.get("hints", [])[:hints_used], "attempts": int(p.get("attempts", 0)), "solved": solved,
                     "explanation": cp.get("explanation") if solved else None,
-                    "evidence": cp.get("evidence") if solved else None, "inspect": cp.get("inspect")})
+                    "evidence": cp.get("evidence") if solved else None,
+                    # inspect targets equal answers for some checkpoints: reveal only after solving
+                    "inspect": cp.get("inspect") if solved else None})
     return {"id": ch["id"], "title": ch["title"], "intro": ch["intro"], "case_key": ch["case_key"], "checkpoints": cps,
             "solved": sum(1 for c in cps if c["solved"]), "total": len(cps)}
 

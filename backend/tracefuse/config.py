@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     goplus_access_token: SecretStr | None = None
 
     # --- HTTP behaviour -------------------------------------------------------------------------
+    # Air-gapped mode: no outbound requests. Live investigations fail honestly with "offline";
+    # historical-case replays still work. Used by the deterministic browser E2E suite.
+    tracefuse_offline: bool = False
     http_timeout_seconds: float = 20.0
     http_max_retries: int = 3
     http_backoff_base_seconds: float = 0.6

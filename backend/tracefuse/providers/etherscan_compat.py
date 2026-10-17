@@ -39,7 +39,7 @@ def etherscan_json_check(provider: str) -> Callable[[Any], ProviderError | None]
             return None
         if "rate limit" in text or "too many" in text:
             return ProviderRateLimited(provider, f"rate limited: {message} {result}"[:200])
-        if "invalid api key" in text or "missing/invalid api key" in text or "api key" in text and "invalid" in text:
+        if "invalid api key" in text or "missing/invalid api key" in text or ("api key" in text and "invalid" in text):
             return ProviderAuthError(provider, "API key rejected")
         if "free api access is not supported" in text or "upgrade" in text:
             return ProviderAuthError(provider, f"plan does not cover this chain/endpoint: {result}"[:200])

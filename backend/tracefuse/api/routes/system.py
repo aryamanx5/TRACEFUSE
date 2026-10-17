@@ -45,6 +45,7 @@ def chains(s: Services = Depends(services)) -> list[dict[str, Any]]:
 def providers(s: Services = Depends(services)) -> dict[str, Any]:
     gh = s.live.github
     return {
+        "offline_mode": s.settings.tracefuse_offline,
         "credentials": s.settings.credential_status(),
         "health": {k: v.to_dict() for k, v in s.health.all().items()},
         "cache": s.cache.stats(),

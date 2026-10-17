@@ -66,7 +66,7 @@ class ProviderRegistry:
             for name in PREFERENCE:
                 p = self.providers[name]
                 note = None
-                if name == "blockscout" and chain.key in ("base", "arbitrum"):
+                if name == "blockscout" and chain.blockscout_base and not chain.blockscout_scripted_access:
                     note = "public instance served a browser challenge to scripted clients when verified (2026-10-17)"
                 if name == "etherscan" and chain.etherscan_supported and not chain.etherscan_free_tier:
                     note = "Etherscan lists this chain as paid-tier only"

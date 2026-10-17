@@ -100,7 +100,7 @@ class CaseRepository:
     def exists(self, case_id: str) -> bool:
         return self.db.one("SELECT 1 FROM cases WHERE id = ?", (case_id,)) is not None
 
-    def list(self) -> list[dict[str, Any]]:
+    def list_cases(self) -> list[dict[str, Any]]:
         rows = self.db.query(
             "SELECT c.*, (SELECT COUNT(*) FROM investigations i WHERE i.case_id = c.id) AS investigation_count,"
             " (SELECT COUNT(*) FROM notes n WHERE n.case_id = c.id) AS note_count,"
@@ -291,7 +291,7 @@ class InvestigationRepository:
             raise NotFoundError(investigation_id)
         return self._row(row)
 
-    def list(self, case_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    def list_investigations(self, case_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
         if case_id:
             rows = self.db.query(
                 "SELECT * FROM investigations WHERE case_id = ? ORDER BY created_at DESC LIMIT ?", (case_id, limit)
@@ -408,7 +408,7 @@ class EventRepository:
             )
         return event.model_copy(update={"seq": seq})
 
-    def list(self, investigation_id: str, after_seq: int = 0) -> list[ProgressEvent]:
+    def list_events(self, investigation_id: str, after_seq: int = 0) -> list[ProgressEvent]:
         rows = self.db.query(
             "SELECT * FROM progress_events WHERE investigation_id = ? AND seq > ? ORDER BY seq",
             (investigation_id, after_seq),

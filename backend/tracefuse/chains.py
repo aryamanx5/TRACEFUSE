@@ -28,6 +28,7 @@ class ChainConfig:
     native_decimals: int
     explorer_base: str
     blockscout_base: str | None = None
+    blockscout_scripted_access: bool = True  # False: public instance serves a browser challenge to scripts
     etherscan_supported: bool = False
     etherscan_free_tier: bool = False
     alchemy_network: str | None = None
@@ -116,6 +117,7 @@ CHAINS: dict[str, ChainConfig] = {
         native_decimals=18,
         explorer_base="https://base.blockscout.com",
         blockscout_base="https://base.blockscout.com",
+        blockscout_scripted_access=False,
         etherscan_supported=True,
         etherscan_free_tier=False,
         alchemy_network="base-mainnet",
@@ -132,6 +134,7 @@ CHAINS: dict[str, ChainConfig] = {
         native_decimals=18,
         explorer_base="https://arbitrum.blockscout.com",
         blockscout_base="https://arbitrum.blockscout.com",
+        blockscout_scripted_access=False,
         etherscan_supported=True,
         etherscan_free_tier=True,
         alchemy_network="arb-mainnet",
