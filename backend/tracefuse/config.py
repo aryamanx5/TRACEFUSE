@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     # --- storage -------------------------------------------------------------------------------
     tracefuse_db_path: Path = Field(default=BACKEND_ROOT / "var" / "tracefuse.sqlite3")
     tracefuse_data_dir: Path = Field(default=BACKEND_ROOT / "data")
+    # built web UI served by this same process (single-port mode); see ./run.sh
+    tracefuse_frontend_dist: Path = Field(default=BACKEND_ROOT.parent / "frontend" / "dist")
 
     # --- credentials (optional; absence = "unconfigured", never faked) -------------------------
     etherscan_api_key: SecretStr | None = None

@@ -8,8 +8,9 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.types import Scope
 
 from .. import __version__
 from ..config import Settings, get_settings
@@ -32,6 +33,44 @@ def ensure_ofac(services: Services) -> None:
     if snap.exists():
         n = import_snapshot(services.ofac, snap)
         log.info("imported bundled OFAC snapshot (%s identifiers)", n)
+
+
+UI_MISSING = """<!doctype html><meta charset="utf-8"><title>TRACEFUSE</title>
+<body style="font:16px/1.5 system-ui,sans-serif;background:#0b0d0b;color:#f2f0e8;max-width:40rem;margin:15vh auto;padding:0 1rem">
+<h1>The TRACEFUSE interface has not been built yet</h1>
+<p>Run <code>./run.sh</code> from the repository root (or <code>cd frontend &amp;&amp; npm run build</code>) and reload this page.
+The API is already running under <a href="/api/ready" style="color:#58d6c5">/api</a>.</p></body>"""
+
+
+class _HashedAssets(StaticFiles):
+    """Vite emits content-hashed file names under /assets, so they can be cached forever."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        resp = await super().get_response(path, scope)
+        if resp.status_code == 200:
+            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return resp
+
+
+def mount_frontend(app: FastAPI, dist: Path) -> None:
+    """Serve the built web UI from the API process: one port for the landing page, the Investigation Room,
+    media and /api. Client-side routes fall back to index.html; unknown /api paths stay JSON 404s."""
+    dist = dist.resolve()
+    index = dist / "index.html"
+    if (dist / "assets").is_dir():
+        app.mount("/assets", _HashedAssets(directory=dist / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    async def spa(path: str):
+        if path == "api" or path.startswith("api/"):
+            return JSONResponse({"detail": f"not found: /{path}"}, status_code=404)
+        if not index.is_file():
+            return HTMLResponse(UI_MISSING, status_code=503)
+        f = (dist / path).resolve()
+        if path and f.is_file() and dist in f.parents:
+            # FileResponse answers Range requests, so the hero video can stream as well as download
+            return FileResponse(f, headers={"Cache-Control": "public, max-age=3600"})
+        return FileResponse(index, headers={"Cache-Control": "no-cache"})
 
 
 def create_app(settings: Settings | None = None, services: Services | None = None) -> FastAPI:
@@ -80,17 +119,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     app.include_router(investigations.router)
     app.include_router(cases.router)
 
-    dist = Path(__file__).resolve().parents[3] / "frontend" / "dist"
-    if dist.exists():
-        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
-
-        @app.get("/{path:path}", include_in_schema=False)
-        async def spa(path: str):
-            f = (dist / path).resolve()
-            if path and f.is_file() and dist in f.parents:
-                return FileResponse(f)
-            return FileResponse(dist / "index.html")
-
+    mount_frontend(app, settings.tracefuse_frontend_dist)
     return app
 
 

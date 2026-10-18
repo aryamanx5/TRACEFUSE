@@ -38,6 +38,15 @@ the remaining 5 are limited only by missing credentials (live verification), see
 | UX-1..5 | VERIFIED (automated) | index.css, components/ui.tsx | axe 0 (dark+light), keyboard spec; see docs/ACCESSIBILITY_AUDIT.md (manual AT testing not performed) |
 | OPS-1..5 | VERIFIED | README, scripts, migrations | — |
 
+## One app, one command (2026-10-18)
+- `./run.sh` (repo root): creates `backend/.venv` / installs UI deps when missing, rebuilds `frontend/dist` only when UI sources are
+  newer, then `exec`s uvicorn — landing, Investigation Room, media and `/api` on one port (default 127.0.0.1:8000).
+- `api/app.py::mount_frontend`: SPA fallback for client routes, `/assets` cached immutable, media via FileResponse (Range → 206),
+  unknown `/api/*` stays JSON 404, path traversal blocked, 503 page with instructions when the UI is not built.
+  Setting `tracefuse_frontend_dist` (env `TRACEFUSE_FRONTEND_DIST`). Tests: `tests/test_frontend_serving.py`.
+- Verified: `./run.sh --offline --rebuild --port 8020` → landing video ready, historical case opens in the workspace, no console errors.
+- Note: the desktop preview runner cannot exec scripts in this worktree (macOS "Operation not permitted"); run `./run.sh` from a terminal.
+
 ## Investigation Room — Phase 2: 2D fund flow + 3D network (2026-10-18, branch `claude/tracefuse-investigation-room`)
 - `features/workspace/flow/model.ts`: one deterministic model for both views. Columns = hop distance from the starting
   wallet (negative = senders in); 2D rows centre-out by importance then barycentre; 3D = one disc per column with branches
@@ -71,7 +80,7 @@ the remaining 5 are limited only by missing credentials (live verification), see
 - Fonts: Archivo (variable width) + JetBrains Mono via Google Fonts in `index.html`; system fallbacks if offline.
 
 ## Last successful checks (2026-10-18, finalization — branch `tracefuse-finalization`)
-backend: pytest 66 passed, 7 skipped (opt-in live; 4 of them additionally credential-gated) · ruff clean · mypy clean.
+backend: pytest 68 passed, 7 skipped (one-app pass; was 66) (opt-in live; 4 of them additionally credential-gated) · ruff clean · mypy clean.
 Earlier in this pass: `TRACEFUSE_LIVE_TESTS=1` live tests — OP Mainnet investigation, OP-Stack deposit confirmed, Across deposit decoded — 3 passed.
 frontend (investigation-room pass): `npm test` 16 passed · tsc/oxlint clean · build OK · Playwright `npm run e2e` **28 passed** (2026-10-18). Landing pass: 26 passed. Earlier: Playwright **25 passed** (incl. axe dark/light, keyboard, dialog, reduced motion, responsive mobile).
 Manual demo smoke (in-app browser): historical Ronin case opens, workspace renders with historical banner, exports and ChronoReplay.

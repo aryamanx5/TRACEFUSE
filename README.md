@@ -20,15 +20,18 @@ intelligence** and keeps every inferred connection explainable.
 
 Requirements: Python ≥ 3.11 (tested on 3.14), Node ≥ 20 (tested on 24).
 
-```bash
-cd backend && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-```
+One command runs the whole app — landing page, Investigation Room, media and API — from a single process:
 
 ```bash
-cd frontend && npm install
+./run.sh
 ```
 
-Run the API (port 8000) and the UI (port 5173, proxies `/api`):
+Open http://127.0.0.1:8000. On first run it creates `backend/.venv`, installs the UI dependencies and builds
+`frontend/dist`; afterwards it rebuilds the UI only when its sources changed. Options: `--port 9000`, `--host 0.0.0.0`,
+`--offline` (no outbound provider calls; the recorded Ronin case still works), `--rebuild`, `--no-build`
+(`./run.sh --help`). The built UI location can be overridden with `TRACEFUSE_FRONTEND_DIST`.
+
+### Developing the UI with hot reload
 
 ```bash
 cd backend && .venv/bin/uvicorn tracefuse.api.app:app --host 127.0.0.1 --port 8000
@@ -38,8 +41,7 @@ cd backend && .venv/bin/uvicorn tracefuse.api.app:app --host 127.0.0.1 --port 80
 cd frontend && npm run dev
 ```
 
-Open http://localhost:5173. For a single-process deployment run `npm run build` in `frontend/`; the API then
-serves `frontend/dist` at http://127.0.0.1:8000.
+Then open http://localhost:5173 (Vite proxies `/api` to port 8000).
 
 No credentials are needed for the demo: Ethereum and OP Mainnet use keyless Blockscout, GoPlus works keyless,
 GitHub issue/commit search works unauthenticated, and an official OFAC snapshot is bundled. Copy
