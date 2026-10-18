@@ -16,20 +16,70 @@ intelligence** and keeps every inferred connection explainable.
 - Historical **Ronin Bridge (2022)** case recorded from real public APIs + investigator challenge
 - HTML / JSON / CSV reports
 
-## Quick start
+## Run it on your laptop
 
-Requirements: Python ≥ 3.11 (tested on 3.14), Node ≥ 20 (tested on 24).
+No API keys and no account are needed. The first run takes a few minutes, because it installs dependencies and builds the UI.
 
-One command runs the whole app — landing page, Investigation Room, media and API — from a single process:
+### 1. Install the two prerequisites
+
+| Tool | Version | Check with |
+|---|---|---|
+| **Python** | 3.11 or newer | `python3 --version` (Windows: `py --version`) |
+| **Node.js** (includes npm) | 20 or newer | `node --version` |
+
+If either is missing, install it from [python.org](https://www.python.org/downloads/) or [nodejs.org](https://nodejs.org/) (choose the LTS version).
+On Windows, tick **"Add Python to PATH"** in the installer.
+
+### 2. Get the code
+
+```bash
+git clone https://github.com/aryamanx5/TRACEFUSE.git
+cd TRACEFUSE
+```
+
+No git? On the GitHub page, click **Code → Download ZIP**, unzip it and open a terminal in the unzipped folder.
+
+### 3. Start TRACEFUSE
+
+**macOS / Linux**: one command sets everything up and starts the app:
 
 ```bash
 ./run.sh
 ```
 
-Open http://127.0.0.1:8000. On first run it creates `backend/.venv`, installs the UI dependencies and builds
-`frontend/dist`; afterwards it rebuilds the UI only when its sources changed. Options: `--port 9000`, `--host 0.0.0.0`,
-`--offline` (no outbound provider calls; the recorded Ronin case still works), `--rebuild`, `--no-build`
-(`./run.sh --help`). The built UI location can be overridden with `TRACEFUSE_FRONTEND_DIST`.
+**Windows (PowerShell)**: run these from the `TRACEFUSE` folder, one at a time:
+
+```powershell
+cd backend
+py -m venv .venv
+.venv\Scripts\pip install -e .
+cd ..\frontend
+npm ci
+npm run build
+cd ..\backend
+.venv\Scripts\uvicorn tracefuse.api.app:app --port 8000
+```
+
+### 4. Open it
+
+Go to **http://127.0.0.1:8000** in Chrome, Edge, Firefox or Safari.
+
+- `/` is the story (landing page). Click **Enter the investigation** to open the app.
+- For a ready-made demo, click **Historical case → Open case in workspace** (the 2022 Ronin Bridge exploit, recorded from real public data).
+
+To stop the app, press **Ctrl + C** in the terminal. Next time you only need step 3. On Windows, run just the last two lines.
+
+### If something goes wrong
+
+| Problem | Fix |
+|---|---|
+| `permission denied: ./run.sh` | `chmod +x run.sh`, then run it again |
+| Port 8000 already in use | `./run.sh --port 9000` (Windows: `--port 9000` at the end of the uvicorn line), then open http://127.0.0.1:9000 |
+| Workshop Wi-Fi is slow or blocks outside sites | `./run.sh --offline`: the historical Ronin case still works fully |
+| `npm ci` is very slow or times out | `npm ci --registry=https://registry.yarnpkg.com` |
+| Page says the UI is not built | Run `npm run build` inside `frontend`, then start again |
+
+Want live data from more chains? Copy `.env.example` to `backend/.env` and add keys. The comments in that file explain each one. This is optional.
 
 ### Developing the UI with hot reload
 
@@ -41,23 +91,19 @@ cd backend && .venv/bin/uvicorn tracefuse.api.app:app --host 127.0.0.1 --port 80
 cd frontend && npm run dev
 ```
 
-Then open http://localhost:5173 (Vite proxies `/api` to port 8000).
-
-No credentials are needed for the demo: Ethereum and OP Mainnet use keyless Blockscout, GoPlus works keyless,
-GitHub issue/commit search works unauthenticated, and an official OFAC snapshot is bundled. Copy
-`.env.example` to `backend/.env` to add keys (see the comments there).
+Then open http://localhost:5173 (Vite proxies `/api` to port 8000). More `run.sh` options: `./run.sh --help`.
 
 ## Demo flow (historical case)
 
 1. Landing page → **Explore the Ronin case** → **Open case in workspace**.
 2. Watch the real progress events (replayed recorded provider responses through the same pipeline).
-3. Wallet graph: the seed (teal), OFAC-listed Lazarus wallets (red tint), the Tornado Cash router (octagon).
+3. Money flow: the starting wallet (mint square), OFAC-listed Lazarus wallets (amber), the Tornado Cash router (orange octagon).
    Click `0x5967…3c0a` → it received 4,512.3 ETH from an OFAC-listed address and sent 45 × 100 ETH to Tornado Cash.
 4. ChronoReplay → ▶ Play from 2022-03-23: the 173,600 ETH internal transfer from the Ronin Bridge appears first.
-5. Matrix → *Transferred value* / ETH → click the brightest cell → underlying transactions with explorer links.
-6. Evidence fusion → the conflict banner shows Tornado Cash designation (2022-08-08), removal/re-designation
+5. Transfer matrix → *Transferred value* / ETH → click the brightest cell → underlying transactions with explorer links.
+6. Connected evidence → the conflict banner shows Tornado Cash designation (2022-08-08), removal/re-designation
    (2022-11-08) and delisting (2025-03-21) from official OFAC notices.
-7. Ranking → *Explain* → per-signal values, weights, facts and missing inputs; toggle signals → Re-evaluate.
+7. Priority leads → *Explain* → per-signal values, weights, facts and missing inputs; toggle signals → Re-evaluate.
 8. Export HTML / JSON / CSV; open the case in **Casebook**, add notes, bookmarks, review states.
 9. **Challenge** → 8 evidence-based checkpoints checked against sourced labels.
 
