@@ -2,7 +2,7 @@
 
 **Follow the money. Find the signal.** Blockchain forensics + open-source intelligence, in your browser.
 
-## How to run it
+## How to run it.
 
 Copy each line, paste it into the window and press **Enter**.
 
