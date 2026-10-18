@@ -7,7 +7,13 @@ Status values: NOT_STARTED · IN_PROGRESS · IMPLEMENTED · TESTED · BLOCKED ·
 2. Backend venv: `backend/.venv` (already has deps). Run `cd backend && .venv/bin/pytest -q`.
 3. Continue with the first row below that is not TESTED/VERIFIED.
 
-## Verified research facts (2026-10-17, do not redo)
+## Canonical version (decided 2026-10-18)
+`main` is the final prototype: cinematic landing page + Investigation Room (layered 2D fund flow, interactive 3D network,
+stable ChronoReplay) + one-command single-port app (`./run.sh`). Start every new session from `main`.
+- Superseded, not merged: `claude/investigation-workspace-redesign-850214` (an earlier, parallel workspace redesign). Do not build on it.
+- Run it: `./run.sh` → http://127.0.0.1:8000 (`--port N` if 8000 is taken, `--offline` for no live provider calls).
+
+ (2026-10-17, do not redo)
 - Blockscout keyless works: eth.blockscout.com, explorer.optimism.io (RPC `/api?module=account` + `/api/v2`). Base/Arbitrum Blockscout → Cloudflare 403 for scripts.
 - GoPlus `address_security` works keyless (Ronin exploiter → sanctioned=1, stealing_attack=1).
 - GitHub search: issues/commits keyless (10/min); code search needs token.
