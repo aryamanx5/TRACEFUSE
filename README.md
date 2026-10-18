@@ -4,38 +4,106 @@
 
 ## How to run it
 
-**1. Install these two (one time only)**
+Copy each line, paste it into the window and press **Enter**.
 
-- **Python 3.11 or newer**: [python.org/downloads](https://www.python.org/downloads/). On Windows, tick **"Add Python to PATH"** during install.
-- **Node.js (LTS)**: [nodejs.org](https://nodejs.org/)
+- **Windows:** use **PowerShell** (Start menu → type "PowerShell").
+- **macOS:** use **Terminal** (Spotlight → type "Terminal").
 
-**2. Download TRACEFUSE**
+### 1. Install Python and Node.js (one time only)
 
-On GitHub, click **Code → Download ZIP**, then unzip it.
+**Windows**
 
-**3. Start it**
+```powershell
+winget install -e --id Python.Python.3.12; winget install -e --id OpenJS.NodeJS.LTS
+```
 
-- **Windows:** open the unzipped folder and double-click **`run.bat`**.
-- **macOS:** open **Terminal**, type `cd ` (with a space), drag the unzipped folder into the window, press Enter, then run:
+**macOS** (needs [Homebrew](https://brew.sh))
 
-  ```bash
-  bash run.sh
-  ```
+```bash
+brew install python@3.12 node
+```
+
+Then **close the window and open a new one**.
+
+No winget or Homebrew? Use the installers from [python.org](https://www.python.org/downloads/) and [nodejs.org](https://nodejs.org/) instead. On Windows, tick "Add Python to PATH".
+
+### 2. Download TRACEFUSE
+
+**Windows**
+
+```powershell
+Invoke-WebRequest https://github.com/aryamanx5/TRACEFUSE/archive/refs/heads/main.zip -OutFile tracefuse.zip; Expand-Archive tracefuse.zip -DestinationPath . -Force; cd TRACEFUSE-main
+```
+
+**macOS**
+
+```bash
+curl -L https://github.com/aryamanx5/TRACEFUSE/archive/refs/heads/main.zip -o tracefuse.zip && unzip -oq tracefuse.zip && cd TRACEFUSE-main
+```
+
+### 3. Start it
+
+**Windows**
+
+```powershell
+.\run.bat
+```
+
+**macOS**
+
+```bash
+bash run.sh
+```
 
 The first start takes a few minutes. After that it starts in seconds.
 
-**4. Open it**
+### 4. Open it
 
-Go to **http://127.0.0.1:8000** in your browser.
-Try **Enter the investigation → Historical case → Open case in workspace**.
+Leave the first window running. Open a second window and paste:
 
-To stop it, press **Ctrl + C** in the window, or close the window.
+**Windows**
+
+```powershell
+Start-Process http://127.0.0.1:8000
+```
+
+**macOS**
+
+```bash
+open http://127.0.0.1:8000
+```
+
+Then click **Enter the investigation → Historical case → Open case in workspace**.
+
+To stop TRACEFUSE, press **Ctrl + C** in the first window.
+
+### Next time
+
+Open a window in the `TRACEFUSE-main` folder and run step 3 again.
 
 ## Problems?
 
-- **"Python/npm not found"**: install step 1, then close and reopen the window.
-- **Port 8000 is busy**: Windows `run.bat --port 9000`, macOS `bash run.sh --port 9000`, then open http://127.0.0.1:9000
-- **No or slow internet**: add `--offline`. The Historical case still works.
+**Port 8000 is busy.** Start on port 9000 instead, then open http://127.0.0.1:9000
+
+```powershell
+.\run.bat --port 9000
+```
+
+```bash
+bash run.sh --port 9000
+```
+
+**No or slow internet.** Start in offline mode. The Historical case still works.
+
+```powershell
+.\run.bat --offline
+```
+
+```bash
+bash run.sh --offline
+```
+
+**"python" or "npm" not found:** do step 1 again, then close and reopen the window.
 
 ---
 Developers: features, tests and data are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
