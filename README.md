@@ -9,7 +9,7 @@ Copy each line, paste it into the window and press **Enter**.
 - **Windows:** use **PowerShell** (Start menu → type "PowerShell").
 - **macOS:** use **Terminal** (Spotlight → type "Terminal").
 
-### 1. Install Python and Node.js (one time only)
+### 1. Install Python and Node.js (one time only).
 
 **Windows**
 
