@@ -1,0 +1,40 @@
+# Fly.io config. First deploy: `fly launch --no-deploy --copy-config`, `fly volumes create tracefuse_data --size 1`,
+# `fly secrets set ETHERSCAN_API_KEY=...` (optional), then `fly deploy`. Rename `app` to something unique.
+app = "tracefuse"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8000"
+  TRACEFUSE_DB_PATH = "/data/tracefuse.sqlite3"
+  # Same-origin deployment (UI + API on one host), so no extra CORS origins are needed.
+  # Set TRACEFUSE_OFFLINE = "1" for a replay-only public demo that makes no outbound calls.
+
+[[mounts]]
+  source = "tracefuse_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "off"   # in-memory jobs + SSE: never stop mid-investigation
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 50
+    hard_limit = 100
+
+[[http_service.checks]]
+  method = "GET"
+  path = "/api/health"
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "20s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

@@ -143,3 +143,6 @@ Run: `cd backend && TRACEFUSE_LIVE_TESTS=1 .venv/bin/pytest tests/test_live.py -
 
 ## Not claimed
 Manual screen-reader / assistive-technology testing has not been performed.
+
+## Deployment (added)
+`Dockerfile` (multi-stage: Vite build, then Python 3.12 runtime, one uvicorn worker, SQLite on `/data`), `.dockerignore`, `fly.toml`. Image built and smoke-tested locally with `TRACEFUSE_OFFLINE=1`: `/api/health`, `/` and `/app` return 200 and the container healthcheck passes. Not yet deployed to a host. Public instances have no auth, so keep API keys off them or gate access.

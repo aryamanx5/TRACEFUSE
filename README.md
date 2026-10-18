@@ -106,4 +106,16 @@ bash run.sh --offline
 **"python" or "npm" not found:** do step 1 again, then close and reopen the window.
 
 ---
+## Deploy it online
+
+One container serves both the web UI and the API, so there is a single thing to deploy.
+
+```bash
+docker build -t tracefuse .
+docker run -p 8000:8000 -v tracefuse_data:/data tracefuse
+```
+
+For Fly.io, `fly.toml` is included (it needs a 1 GB volume named `tracefuse_data`). Keep exactly **one** instance: job state is in memory and SQLite is single-writer. There is no login, so a public instance with real API keys lets anyone spend your provider quotas. Deploy without keys, or add `TRACEFUSE_OFFLINE=1`, for a safe public demo.
+
+---
 Developers: features, tests and data are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
