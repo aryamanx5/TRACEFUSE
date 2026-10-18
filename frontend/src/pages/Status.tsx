@@ -4,6 +4,7 @@ import { useApi } from '../lib/hooks'
 import type { ChainInfo } from '../lib/types'
 import { ErrorBox, ExtLink, Section, Spinner } from '../components/ui'
 import { fmtTime } from '../lib/format'
+import { PageHead } from '../components/brand'
 
 interface ProvidersResp {
   offline_mode?: boolean
@@ -24,10 +25,10 @@ export default function Status() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <h1 className="text-2xl font-semibold">Sources &amp; health</h1>
+      <PageHead mascot="archie" kicker="Providers & data sources" title="Sources & health" lede="Which chains and intelligence sources are configured, reachable and verified — nothing is mocked when a key is missing." />
       <ErrorBox error={prov.error ?? chains.error ?? err} onRetry={prov.reload} />
       {prov.data?.offline_mode && (
-        <p role="status" className="rounded-md border border-hypo/50 bg-hypo/10 p-2 text-sm">
+        <p role="status" className="border border-hypo/50 bg-hypo/10 p-2 text-sm">
           Offline mode (TRACEFUSE_OFFLINE=1): live providers are disabled. Historical cases still replay recorded data.
         </p>
       )}

@@ -14,7 +14,7 @@ test('live investigation with providers offline fails honestly and retry is real
   await expect(page.getByText('Backend progress')).toBeVisible()
   await expect(page.getByText(/provider failure/)).toBeVisible()
   // no fabricated data: the failed run exposes no analysis tabs
-  await expect(page.getByRole('tab', { name: /Fund flow/ })).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: /Money flow/ })).toHaveCount(0)
   await alert.getByRole('button', { name: 'Retry' }).click()
   await expect(page).not.toHaveURL(firstId)
   await expect(page.getByRole('group', { name: 'Investigation status' }).getByText('Failed', { exact: true })).toBeVisible({ timeout: 30_000 })

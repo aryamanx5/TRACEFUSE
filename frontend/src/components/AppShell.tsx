@@ -1,4 +1,6 @@
-import { NavLink, Outlet, Link } from 'react-router-dom'
+import { NavLink, Outlet, Link, useLocation } from 'react-router-dom'
+import { Wordmark } from './brand'
+import { useCharacterGaze } from './useCharacterGaze'
 
 const NAV = [
   { to: '/app', label: 'Overview', end: true },
@@ -9,34 +11,27 @@ const NAV = [
   { to: '/app/status', label: 'Sources & health' },
 ]
 
+/** Application frame: a compact title strip (wordmark + boxed navigation) over a full-width working area. */
 export default function AppShell() {
+  const { pathname } = useLocation()
+  const workspace = pathname.startsWith('/app/investigations/')
+  useCharacterGaze()
   return (
-    <div className="flex min-h-full flex-col md:flex-row">
+    <div className="tf-app">
       <a href="#main" className="skip-link tf-btn">Skip to main content</a>
-      <aside aria-label="Application sidebar" className="border-b border-line bg-elev md:w-56 md:shrink-0 md:border-r md:border-b-0">
-        <div className="flex items-center justify-between px-4 py-3 md:block">
-          <Link to="/" className="flex items-center gap-2 font-semibold tracking-wide">
-            <img src="/favicon.svg" alt="" className="h-6 w-6" /> TRACEFUSE
-          </Link>
-          <p className="hidden text-[11px] text-faint md:block">Follow the money. Find the signal.</p>
-        </div>
-        <nav aria-label="Primary" className="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:pb-4">
+      <header className="tf-topbar">
+        <Link to="/" className="tf-topbar-mark" aria-label="TRACEFUSE — back to the story"><Wordmark /></Link>
+        <nav aria-label="Primary" className="tf-topbar-nav">
           {NAV.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              end={n.end}
-              className={({ isActive }) =>
-                `whitespace-nowrap rounded-md px-3 py-2 text-sm ${isActive ? 'bg-panel2 text-ink' : 'text-dim hover:bg-panel hover:text-ink'}`
-              }
-            >
-              {n.label}
-            </NavLink>
+            <NavLink key={n.to} to={n.to} end={n.end} className="tf-navpill">{n.label}</NavLink>
           ))}
         </nav>
-      </aside>
-      <main id="main" tabIndex={-1} className="min-w-0 flex-1 p-3 outline-none md:p-5">
-        <Outlet />
+        <p className="tf-topbar-meta" aria-hidden>Forensics <span>×</span> OSINT</p>
+      </header>
+      <main id="main" tabIndex={-1} className={`tf-main ${workspace ? 'tf-main-wide' : ''}`}>
+        <div key={workspace ? 'ws' : pathname} className="tf-route">
+          <Outlet />
+        </div>
       </main>
     </div>
   )

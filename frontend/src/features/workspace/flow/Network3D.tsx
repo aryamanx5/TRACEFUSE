@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { fmtTime, short } from '../../../lib/format'
 import type { Selection } from '../state'
 import type { ViewHandle } from './FlowGraph2D'
@@ -24,12 +25,13 @@ interface Props {
 
 // Scene palette: fixed (the 3D room is always dark), matched to the workspace's signal colours.
 const C = {
-  teal: 0x2dd4bf, cyan: 0x22d3ee, amber: 0xf59e0b, steel: 0x5b6f8f, wallet: 0x9fb0c8, bg: 0x060a12, grid: 0x1b2a40, gridMain: 0x24405e,
+  teal: 0x5ef2c2, cyan: 0x3fd0ff, amber: 0xffb03a, ember: 0xff7a3d, violet: 0xa99bff, steel: 0x6b7072, wallet: 0xc9c6bc,
+  bg: 0x0e0f10, grid: 0x1c2120, gridMain: 0x2b3532,
 }
 
 type SceneState = {
     renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; controls: OrbitControls
-    graph: THREE.Group; tubes: THREE.Group; fx: THREE.Group; glow: THREE.Texture
+    graph: THREE.Group; tubes: THREE.Group; fx: THREE.Group; glow: THREE.Texture; grid: THREE.Texture
     nodes: Map<string, NodeObj>; edges: Map<string, EdgeObj>; pick: THREE.Mesh[]
     points: THREE.Points | null; flows: { pts: THREE.Vector3[]; t: number; speed: number }[]
     pulses: { s: THREE.Sprite; t0: number }[]
@@ -57,10 +59,29 @@ function glowTexture() {
   return t
 }
 
+function gridTexture() {
+  const s = 128
+  const cv = document.createElement('canvas')
+  cv.width = cv.height = s
+  const g = cv.getContext('2d')!
+  g.fillStyle = '#123a30'
+  g.fillRect(0, 0, s, s)
+  g.strokeStyle = '#9ffbe0'
+  g.lineWidth = 3
+  for (let i = 0; i <= 6; i++) {
+    const v = (i / 6) * s
+    g.beginPath(); g.moveTo(v, 0); g.lineTo(v, s); g.stroke()
+    g.beginPath(); g.moveTo(0, v); g.lineTo(s, v); g.stroke()
+  }
+  const t = new THREE.CanvasTexture(cv)
+  t.colorSpace = THREE.SRGBColorSpace
+  return t
+}
+
 const GEOS: Partial<Record<NodeKind, THREE.BufferGeometry>> = {}
 function geometry(kind: NodeKind): THREE.BufferGeometry {
   if (GEOS[kind]) return GEOS[kind]!
-  const g = kind === 'seed' ? new THREE.SphereGeometry(4.2, 32, 24)
+  const g = kind === 'seed' ? new RoundedBoxGeometry(6.4, 6.4, 6.4, 3, 0.7)
     : kind === 'mixer' ? new THREE.OctahedronGeometry(3.2)
     : kind === 'bridge' ? new THREE.OctahedronGeometry(2.8).scale(1, 1.5, 1)
     : kind === 'exchange' ? new THREE.CylinderGeometry(2.6, 2.6, 1.8, 6)
@@ -75,7 +96,8 @@ const radius = (k: NodeKind) => (k === 'seed' ? 4.4 : k === 'wallet' ? 1.8 : 3.2
 
 function nodeColor(n: FlowNode) {
   if (n.kind === 'seed') return C.teal
-  if (n.kind === 'mixer' || n.flagged) return C.amber
+  if (n.kind === 'mixer') return C.ember
+  if (n.flagged) return C.amber
   if (n.kind === 'bridge' || n.kind === 'exchange') return C.cyan
   if (n.kind === 'more') return C.steel
   return C.wallet
@@ -120,11 +142,11 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
     controls.minDistance = 12
     controls.maxDistance = 2200
     controls.zoomSpeed = 0.9
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55))
-    const key = new THREE.DirectionalLight(0xffffff, 0.9)
+    scene.add(new THREE.HemisphereLight(0xe8f0ff, 0x16110a, 0.75))
+    const key = new THREE.DirectionalLight(0xffffff, 1.1)
     key.position.set(-1, 2, 1.5)
     scene.add(key)
-    const rim = new THREE.PointLight(C.teal, 1.4, 420, 1.2)
+    const rim = new THREE.PointLight(C.teal, 2.2, 420, 1.2)
     rim.position.set(0, 30, 40)
     scene.add(rim)
     const graph = new THREE.Group()
@@ -132,7 +154,7 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
     const fx = new THREE.Group()
     scene.add(graph, tubes, fx)
     const state: SceneState = {
-      renderer, scene, camera, controls, graph, tubes, fx, glow: glowTexture(),
+      renderer, scene, camera, controls, graph, tubes, fx, glow: glowTexture(), grid: gridTexture(),
       nodes: new Map(), edges: new Map(), pick: [], points: null, flows: [], pulses: [], tween: null, home: null,
       mouse: null, hovered: null, down: null, visible: true,
     }
@@ -196,6 +218,7 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
         if (k >= 1) state.tween = null
       }
       controls.update()
+      if (!latest.current.reduced) for (const o of graph.children) if (o.userData.spin) o.rotation.z += dt * 0.35
       // transaction particles travel along the real edge curves
       if (state.points && state.flows.length) {
         const pos = state.points.geometry.getAttribute('position') as THREE.BufferAttribute
@@ -286,6 +309,7 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
       disposeGroup(fx)
       state.points?.geometry.dispose()
       state.glow.dispose()
+      state.grid.dispose()
       renderer.dispose()
       renderer.domElement.remove()
       S.current = null
@@ -305,13 +329,23 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
     for (const n of m.nodes) {
       const color = nodeColor(n)
       const mat = new THREE.MeshStandardMaterial({
-        color, emissive: color, emissiveIntensity: n.kind === 'seed' ? 0.9 : n.kind === 'wallet' ? 0.18 : 0.45,
-        roughness: 0.35, metalness: 0.15, transparent: true, opacity: n.kind === 'more' ? 0.55 : 1,
+        color, emissive: color, emissiveIntensity: n.kind === 'seed' ? 0.9 : n.kind === 'wallet' ? 0.12 : 0.45,
+        roughness: 0.35, metalness: n.kind === 'wallet' ? 0.35 : 0.15, transparent: true, opacity: n.kind === 'more' ? 0.55 : 1,
+        ...(n.kind === 'seed' ? { map: st.grid, emissiveMap: st.grid } : {}),
       })
       const mesh = new THREE.Mesh(geometry(n.kind), mat)
       mesh.position.set(...n.p3)
       mesh.userData.id = n.id
       if (n.kind === 'more') mesh.rotation.y = Math.PI / 2
+      if (n.kind === 'seed') {
+        mesh.rotation.set(0.5, 0.7, 0)
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(9, 0.18, 6, 72), new THREE.MeshBasicMaterial({ color: C.cyan, transparent: true, opacity: 0.6 }))
+        ring.position.copy(mesh.position)
+        ring.rotation.set(Math.PI / 2.4, 0.3, 0)
+        ring.userData.spin = true
+        st.graph.add(ring)
+        mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(6.6, 6.6, 6.6)), new THREE.LineBasicMaterial({ color: C.teal })))
+      }
       st.graph.add(mesh)
       st.pick.push(mesh)
       let halo: THREE.Sprite | null = null
@@ -369,6 +403,18 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
     for (const c of m.columns) {
       const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(c.x3, floorY, -span / 2.4), new THREE.Vector3(c.x3, floorY, span / 2.4)])
       st.graph.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: c.col === 0 ? C.teal : C.gridMain, transparent: true, opacity: c.col === 0 ? 0.5 : 0.6 })))
+      // each hop is a translucent disc around the flow axis: branches keep their angle from disc to disc
+      if (c.col === 0) continue
+      const rs = m.nodes.filter((n) => n.col === c.col && n.kind !== 'more').map((n) => Math.hypot(n.p3[1], n.p3[2]))
+      const R = Math.max(10, ...rs) + 6
+      const disc = new THREE.Mesh(new THREE.RingGeometry(R - 0.35, R, 96), new THREE.MeshBasicMaterial({ color: c.col > 0 ? C.teal : C.violet, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }))
+      disc.position.set(c.x3, 0, 0)
+      disc.rotation.y = Math.PI / 2
+      st.graph.add(disc)
+      const fill = new THREE.Mesh(new THREE.CircleGeometry(R, 64), new THREE.MeshBasicMaterial({ color: c.col > 0 ? C.teal : C.violet, transparent: true, opacity: 0.025, side: THREE.DoubleSide, depthWrite: false }))
+      fill.position.copy(disc.position)
+      fill.rotation.y = Math.PI / 2
+      st.graph.add(fill)
     }
     // frame the whole model once; later rebuilds (expanding) keep the analyst's camera
     const box3 = new THREE.Box3().setFromPoints(m.nodes.map((n) => new THREE.Vector3(...n.p3)))
@@ -376,7 +422,7 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
     const R = Math.max(40, sphere.radius)
     const home = {
       target: sphere.center.clone(),
-      pos: sphere.center.clone().add(new THREE.Vector3(-R * 0.2, R * 0.4, R * 1.45)),
+      pos: sphere.center.clone().add(new THREE.Vector3(-R * 0.3, R * 0.45, R * 1.8)),
     }
     if (!st.home) {
       st.camera.position.copy(home.pos)
@@ -534,13 +580,13 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
       <div ref={labelLayer} className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         {p.model.columns.map((c) => (
           <span key={`col${c.col}`} data-id={`col:${c.col}`} data-kind="col" data-x={c.x3} data-y={floorY}
-            className="absolute top-0 left-0 whitespace-nowrap text-[10px] font-semibold tracking-[0.14em] text-[#6f86a6] uppercase">{c.label}</span>
+            className="absolute top-0 left-0 font-mono text-[10px] font-medium whitespace-nowrap tracking-[0.14em] text-[#8f8d86] uppercase">{c.label}</span>
         ))}
         {[...labelIds].map((id) => {
           const n = p.model.byId.get(id)!
           return (
-            <span key={id} data-id={id} className={`absolute top-0 left-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] ${
-              id === sel ? 'bg-[#0b3b44]/90 text-white' : n.kind === 'seed' ? 'bg-[#06121c]/80 font-semibold text-[#5eead4]' : 'bg-[#06121c]/70 text-[#c7d4e6]'}`}>
+            <span key={id} data-id={id} className={`absolute top-0 left-0 whitespace-nowrap border px-1.5 py-0.5 text-[11px] ${
+              id === sel ? 'border-[#3fd0ff] bg-[#0b2f3a]/90 text-white' : n.kind === 'seed' ? 'border-[#5ef2c2]/60 bg-[#0e0f10]/85 font-semibold text-[#5ef2c2]' : 'border-[#3b3e42] bg-[#0e0f10]/80 text-[#d9d6cc]'}`}>
               {n.title}
             </span>
           )
@@ -550,14 +596,14 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
         <HoverCard x={hover.x} y={hover.y} node={hoverNode} model={p.model} />
       )}
       {selNode && selNode.node && (
-        <div className="absolute top-3 left-3 w-[250px] rounded-md border border-[#1f3b52] bg-[#06101a]/85 p-3 text-xs text-[#c7d4e6]" data-testid="hud-selected">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-[#5eead4] uppercase">Selected wallet</p>
-          <p className="mt-1 font-medium text-white">{selNode.title}</p>
-          <p className="mono text-[#8fa3bf]">{short(selNode.id, 8)}</p>
+        <div className="absolute top-3 left-3 w-[260px] border border-[#3b3e42] border-t-2 border-t-[#3fd0ff] bg-[#0e0f10]/88 p-3 text-xs text-[#d9d6cc] backdrop-blur-sm" data-testid="hud-selected">
+          <p className="font-mono text-[10px] tracking-[0.14em] text-[#3fd0ff] uppercase">Selected wallet</p>
+          <p className="mt-1 font-display text-base leading-tight font-black text-white uppercase">{selNode.title}</p>
+          <p className="mono text-[#a8a59c]">{short(selNode.id, 8)}</p>
           <p className="mt-1">{KIND_LABEL[selNode.kind]}{selNode.flagged && selNode.kind !== 'flagged' ? ' · flagged by a public source' : ''}</p>
-          <p className="text-[#8fa3bf]">{p.model.columns.find((c) => c.col === selNode.col)?.label} · {selNode.node.in_count} in / {selNode.node.out_count} out</p>
+          <p className="text-[#a8a59c]">{p.model.columns.find((c) => c.col === selNode.col)?.label} · {selNode.node.in_count} in / {selNode.node.out_count} out</p>
           {p.path && p.path.nodes.at(-1) === selNode.id && p.path.edges.length > 0 && (
-            <p className="mt-1 text-[#67e8f9]">Route: {p.path.edges.length} transfer{p.path.edges.length === 1 ? '' : 's'} {p.path.direction === 'upstream' ? 'into' : 'from'} the starting wallet</p>
+            <p className="mt-1 text-[#3fd0ff]">Route: {p.path.edges.length} transfer{p.path.edges.length === 1 ? '' : 's'} {p.path.direction === 'upstream' ? 'into' : 'from'} the starting wallet</p>
           )}
           <div className="mt-2 flex flex-wrap gap-1.5">
             <button type="button" className="tf-btn py-0.5 text-[11px]" onClick={() => focusNode(selNode.id)}>Focus wallet</button>
@@ -565,7 +611,7 @@ export const Network3D = forwardRef<ViewHandle, Props>(function Network3D(p, ref
           </div>
         </div>
       )}
-      <p className="pointer-events-none absolute bottom-2 left-3 text-[11px] text-[#6f86a6]">
+      <p className="pointer-events-none absolute bottom-2 left-3 font-mono text-[10.5px] text-[#8f8d86]">
         Drag to orbit · right-drag or shift-drag to pan · scroll to zoom · click a wallet to inspect
         {p.visibleUntil !== null && <> · replay at {fmtTime(p.visibleUntil)}</>}
       </p>

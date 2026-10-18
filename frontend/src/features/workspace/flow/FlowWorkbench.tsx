@@ -138,46 +138,48 @@ export default function FlowWorkbench({ invId, graph, filter, selection, onSelec
   return (
     <div className="flex h-full flex-col">
       {/* toolbar: view switch · find · camera · selection tools · display */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-2 py-2 text-xs" role="toolbar" aria-label="Fund-flow tools">
+      <div className="tf-toolbar" role="toolbar" aria-label="Fund-flow tools">
         <div className="tf-seg" role="group" aria-label="View">
           <button type="button" aria-pressed={effectiveMode === '2d'} onClick={() => onMode('2d')}>2D Fund flow</button>
           <button type="button" aria-pressed={effectiveMode === '3d'} onClick={() => onMode('3d')} disabled={narrow || !!unavailable3d}
             title={narrow ? '3D needs a wider screen — the 2D fund flow shows the same data' : unavailable3d ?? 'Same investigation, as an interactive 3D network'}>3D Network</button>
         </div>
-        <form onSubmit={find} className="flex items-center gap-1" role="search">
+        <form onSubmit={find} className="tf-toolgroup" role="search">
           <label htmlFor="gsearch" className="sr-only">Search graph</label>
-          <input id="gsearch" className="tf-input w-44 py-1" placeholder="Find address or label" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <button className="tf-btn py-1">Find</button>
+          <input id="gsearch" className="tf-input w-44 py-1 text-xs" placeholder="Find address or label" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <button className="tf-btn">Find</button>
         </form>
-        <div className="flex items-center gap-1" role="group" aria-label="Camera">
-          <button type="button" className="tf-btn py-1" onClick={() => view.current?.fit()} title="Fit everything in view">Fit</button>
-          <button type="button" className="tf-btn py-1" aria-label="Zoom in" onClick={() => view.current?.zoom(1.3)}>＋</button>
-          <button type="button" className="tf-btn py-1" aria-label="Zoom out" onClick={() => view.current?.zoom(1 / 1.3)}>－</button>
-          <button type="button" className="tf-btn py-1" onClick={resetLayout} title="Back to the simplified view, original positions and camera">
+        <div className="tf-toolgroup" role="group" aria-label="Camera">
+          <button type="button" className="tf-btn" onClick={() => view.current?.fit()} title="Fit everything in view">Fit</button>
+          <button type="button" className="tf-btn" aria-label="Zoom in" onClick={() => view.current?.zoom(1.3)}>＋</button>
+          <button type="button" className="tf-btn" aria-label="Zoom out" onClick={() => view.current?.zoom(1 / 1.3)}>－</button>
+          <button type="button" className="tf-btn" onClick={resetLayout} title="Back to the simplified view, original positions and camera">
             {effectiveMode === '3d' ? 'Reset camera' : 'Reset layout'}
           </button>
         </div>
-        <div className="flex items-center gap-1" role="group" aria-label="Selected wallet">
-          <button type="button" className="tf-btn py-1" disabled={!sel} onClick={trace} title="Highlight the route of transfers between the starting wallet and the selected wallet">Trace path</button>
-          <button type="button" className="tf-btn py-1" disabled={!sel && !path} aria-pressed={isolate} onClick={() => setIsolate((v) => !v)} title="Dim everything not on the route / around the selection">Isolate</button>
-          <button type="button" className="tf-btn py-1" disabled={!sel} onClick={expandOne} title="Draw every wallet that sent to or received from the selected wallet">Expand one hop</button>
-          <button type="button" className="tf-btn py-1" disabled={!sel} onClick={() => sel && view.current?.focus(sel)}>Focus</button>
-          <button type="button" className="tf-btn py-1" disabled={!sel} onClick={() => sel && onHide(sel)}>Hide</button>
+        <div className="tf-toolgroup" role="group" aria-label="Selected wallet">
+          <button type="button" className="tf-btn" disabled={!sel} onClick={trace} title="Highlight the route of transfers between the starting wallet and the selected wallet">Trace path</button>
+          <button type="button" className="tf-btn" disabled={!sel && !path} aria-pressed={isolate} onClick={() => setIsolate((v) => !v)} title="Dim everything not on the route / around the selection">Isolate</button>
+          <button type="button" className="tf-btn" disabled={!sel} onClick={expandOne} title="Draw every wallet that sent to or received from the selected wallet">Expand one hop</button>
+          <button type="button" className="tf-btn" disabled={!sel} onClick={() => sel && view.current?.focus(sel)}>Focus</button>
+          <button type="button" className="tf-btn" disabled={!sel} onClick={() => sel && onHide(sel)}>Hide</button>
         </div>
-        <button type="button" className="tf-btn py-1" aria-pressed={full} onClick={toggleFull}>{full ? 'Simplified view' : 'Show full graph'}</button>
+        <div className="tf-toolgroup">
+        <button type="button" className="tf-btn" aria-pressed={full} onClick={toggleFull}>{full ? 'Simplified view' : 'Show full graph'}</button>
         <details className="relative">
-          <summary className="tf-btn cursor-pointer list-none py-1">Display ▾</summary>
-          <div className="absolute right-0 z-30 mt-1 w-64 space-y-1.5 rounded-md border border-linestrong bg-elev p-2.5 shadow-lg">
+          <summary className="tf-btn cursor-pointer list-none">Display ▾</summary>
+          <div className="tf-menu right-0 w-64 space-y-1.5">
             <label className="flex items-center gap-2"><input type="checkbox" checked={labels} onChange={(e) => setLabels(e.target.checked)} /> Wallet labels</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={particles} disabled={reduced} onChange={(e) => setParticles(e.target.checked)} /> Moving transfer particles (3D){reduced ? ' — off: reduced motion' : ''}</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={inferredOn} onChange={(e) => setInferredOn(e.target.checked)} /> Unverified patterns (dotted)</label>
           </div>
         </details>
-        <span className="ml-auto text-faint" data-testid="flow-count">{model.shownWallets} of {model.totalWallets} wallets drawn</span>
+        </div>
+        <span className="tf-num ml-auto text-[11px] text-faint" data-testid="flow-count">{model.shownWallets} of {model.totalWallets} wallets drawn</span>
       </div>
 
       {/* status of what is (and is not) on screen — fixed height so nothing below jumps */}
-      <div className="flex min-h-[30px] flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-panel2/40 px-3 py-1 text-[11px] text-dim" aria-live="polite">
+      <div className="tf-statusline" aria-live="polite">
         {!full && model.hiddenWallets > 0 ? (
           <span>
             <strong className="text-ink">Simplified view</strong>: the starting wallet, flagged and service wallets, the largest flows and the routes between them.
@@ -196,7 +198,7 @@ export default function FlowWorkbench({ invId, graph, filter, selection, onSelec
         {unavailable3d && <span className="text-hypo">{unavailable3d}</span>}
       </div>
 
-      <div className="relative h-[max(480px,calc(100vh-13rem))] shrink-0" key={effectiveMode}>
+      <div className="relative h-[max(480px,calc(100vh-15rem))] shrink-0" key={effectiveMode}>
         <div className="tf-fade-in absolute inset-0">
           {effectiveMode === '2d' ? (
             <FlowGraph2D ref={view} {...viewProps} />
@@ -211,8 +213,8 @@ export default function FlowWorkbench({ invId, graph, filter, selection, onSelec
 
       <FlowLegend inferred={inferredOn} />
 
-      <details className="border-t border-line p-2 text-xs">
-        <summary className="cursor-pointer font-medium">Wallet list ({graph.nodes.length}) — keyboard-accessible</summary>
+      <details className="border-t border-line px-3 py-2 text-xs">
+        <summary className="cursor-pointer font-semibold text-dim hover:text-ink">Wallet list ({graph.nodes.length}) — keyboard-accessible</summary>
         <ul className="mt-2 max-h-56 space-y-0.5 overflow-auto" aria-label="Wallets in graph">
           {[...graph.nodes]
             .sort((a, b) => Number(b.is_seed) - Number(a.is_seed) || (b.score ?? -1) - (a.score ?? -1) || a.id.localeCompare(b.id))
@@ -220,7 +222,7 @@ export default function FlowWorkbench({ invId, graph, filter, selection, onSelec
             .map((n) => (
               <li key={n.id}>
                 <button type="button" aria-pressed={sel === n.id} onClick={() => onSelect({ kind: 'node', address: n.id })}
-                  className={`w-full rounded px-1 text-left hover:bg-panel2 ${sel === n.id ? 'bg-panel2' : ''}`}>
+                  className={`w-full border-l-2 px-2 py-0.5 text-left hover:bg-panel2 ${sel === n.id ? 'border-signal2 bg-panel2' : 'border-transparent'}`}>
                   <span className="mono">{short(n.id, 6)}</span>
                   {n.is_seed && <span className="tf-badge ml-1">starting wallet</span>}
                   {n.labels[0] && <span className="ml-1 text-dim">{n.labels[0].label}</span>}
@@ -230,7 +232,7 @@ export default function FlowWorkbench({ invId, graph, filter, selection, onSelec
             ))}
         </ul>
       </details>
-      <p className="px-2 pb-2 text-[11px] text-faint">{graph.caveat}</p>
+      <p className="px-3 pb-2 text-[11px] text-faint">{graph.caveat}</p>
     </div>
   )
 }

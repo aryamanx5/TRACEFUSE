@@ -4,6 +4,7 @@ import { api, sessionId } from '../lib/api'
 import { useApi } from '../lib/hooks'
 import type { ChallengeView } from '../lib/types'
 import { ErrorBox, ExtLink, Section, Spinner } from '../components/ui'
+import { Character } from '../components/characters'
 
 export default function Challenge() {
   const { id } = useParams()
@@ -70,9 +71,11 @@ function ChallengeRun({ id }: { id: string }) {
   const pct = Math.round((view.solved / view.total) * 100)
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+      <header className="tf-pagehead">
+        <span className="tf-pagehead-mascot" aria-hidden><Character kind={pct === 100 ? 'hexo' : 'knot'} size={84} pop idle="sway" /></span>
         <div>
-          <h1 className="text-2xl font-semibold">{view.title}</h1>
+          <p className="tf-kicker mb-2 flex items-center gap-2"><span className="tf-kicker-dot" aria-hidden />Challenge mode</p>
+          <h1 className="tf-pagehead-title">{view.title}</h1>
           <p className="max-w-2xl text-dim">{view.intro}</p>
         </div>
         <div className="flex gap-2">
@@ -82,8 +85,8 @@ function ChallengeRun({ id }: { id: string }) {
       </header>
       <div>
         <div className="mb-1 flex justify-between text-sm"><span>Progress</span><span>{view.solved}/{view.total} checkpoints</span></div>
-        <div className="h-2 overflow-hidden rounded-full bg-panel2" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Challenge progress">
-          <div className="h-full bg-gradient-to-r from-signal to-intel" style={{ width: `${pct}%` }} />
+        <div className="tf-meter h-2.5" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Challenge progress">
+          <span className="transition-[width] duration-700" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--signal), var(--intel))' }} />
         </div>
       </div>
       {view.checkpoints.map((cp, i) => (
@@ -117,8 +120,8 @@ function ChallengeRun({ id }: { id: string }) {
           {feedback[cp.id] === 'wrong' && !cp.solved && <p role="alert" className="mt-2 text-sm text-danger">Not quite — inspect the evidence and try again ({cp.attempts} attempt{cp.attempts === 1 ? '' : 's'}).</p>}
           {cp.hints.length > 0 && <ul className="mt-2 list-disc pl-5 text-sm text-dim">{cp.hints.map((h) => <li key={h}>{h}</li>)}</ul>}
           {cp.solved && (
-            <div className="mt-2 rounded-md border border-ok/40 bg-ok/10 p-3 text-sm">
-              <p className="font-medium text-ok">Correct.</p>
+            <div className="tf-correct mt-2 border border-ok/40 border-l-2 border-l-ok bg-ok/10 p-3 text-sm">
+              <p className="flex items-center gap-2 font-semibold text-ok"><Character kind="hexo" size={40} idle="none" /> Correct.</p>
               <p>{cp.explanation}</p>
               {cp.evidence && cp.evidence.length > 0 && <ul className="mt-1">{cp.evidence.map((u) => <li key={u}><ExtLink href={u}>{u}</ExtLink></li>)}</ul>}
             </div>

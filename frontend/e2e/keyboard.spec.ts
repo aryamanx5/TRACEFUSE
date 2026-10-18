@@ -101,7 +101,8 @@ test('reduced motion is honoured in a real browser', async ({ page }) => {
   await expect(page.locator('img.tfl-media')).toBeVisible()
   await page.locator('#enter').scrollIntoViewIfNeeded()
   // content is fully opaque immediately: nothing waits on a scroll-linked fade
-  await expect(page.locator('#enter .tfl-chapter-inner')).toHaveCSS('opacity', '1', { timeout: 1000 })
+  await expect(page.locator('#enter-title')).toBeVisible({ timeout: 1000 })
+  await expect(page.getByRole('link', { name: 'Enter the investigation' }).last()).toHaveCSS('opacity', '1', { timeout: 1000 })
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('/')
   await expect(page.locator('video')).toHaveCount(1)

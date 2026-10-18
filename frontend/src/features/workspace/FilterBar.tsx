@@ -7,16 +7,17 @@ const KINDS: [string, string][] = [['native', 'ETH transfers'], ['internal', 'ET
 export default function FilterBar({ filter, setFilter, assets }: { filter: Filter; setFilter: (f: Filter) => void; assets: AssetTotal[] }) {
   const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
   return (
-    <details className="tf-panel px-3 py-2 text-sm">
-      <summary className="cursor-pointer select-none font-medium">
+    <details className="tf-filter text-sm">
+      <summary className="tf-filter-summary">
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden><path d="M2 3h12L9.5 8.5V13l-3 1.5V8.5Z" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
         Filters
-        <span className="ml-2 text-xs text-faint">
+        <span className="tf-filter-state">
           {[filter.assets.length && `${filter.assets.length} asset(s)`, filter.kinds.length && `${filter.kinds.length} type(s)`,
             filter.hide.length && `${filter.hide.length} hidden`, filter.minAmount && `≥ ${filter.minAmount}`, filter.includeZero && 'incl. zero-value calls',
             !filter.includeUnrecognised && 'well-known tokens only'].filter(Boolean).join(' · ') || 'none'}
         </span>
       </summary>
-      <div className="mt-3 grid gap-4 md:grid-cols-4">
+      <div className="tf-menu tf-filter-pop grid gap-4 md:grid-cols-4">
         <fieldset>
           <legend className="tf-label">Assets</legend>
           <div className="max-h-32 space-y-1 overflow-auto">

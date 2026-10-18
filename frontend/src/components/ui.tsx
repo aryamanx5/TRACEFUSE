@@ -2,11 +2,12 @@ import { useEffect, useId, useRef, type ReactNode } from 'react'
 import type { AssertionStatus } from '../lib/types'
 import { STATUS_HELP, STATUS_LABEL, safeHref, short } from '../lib/format'
 import { ApiError } from '../lib/api'
+import { Character } from './characters'
 
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
     <span role="status" className="inline-flex items-center gap-2 text-dim">
-      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-signal border-t-transparent" aria-hidden />
+      <span className="h-3 w-3 animate-spin border-2 border-signal border-t-transparent" aria-hidden />
       <span className="text-xs">{label}…</span>
     </span>
   )
@@ -29,7 +30,7 @@ export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => v
             ? 'Not found'
             : 'Something went wrong'
   return (
-    <div role="alert" className="rounded-lg border border-danger/50 bg-danger/10 p-3 text-sm">
+    <div role="alert" className="border border-danger/50 border-l-4 bg-danger/10 p-3 text-sm">
       <p className="font-semibold text-danger">{title}</p>
       <p className="text-dim">{e?.message ?? String(error)}</p>
       {onRetry && (
@@ -43,8 +44,9 @@ export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => v
 
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line p-8 text-center">
-      <p className="font-medium">{title}</p>
+    <div className="flex flex-col items-center justify-center gap-1.5 border border-dashed border-linestrong p-8 text-center">
+      <Character kind="snoop" size={64} idle="sway" />
+      <p className="font-display text-base font-extrabold tracking-wide uppercase">{title}</p>
       {children && <div className="text-sm text-dim">{children}</div>}
     </div>
   )
@@ -94,9 +96,9 @@ export function Copy({ text }: { text: string }) {
 export function Section({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
   const id = useId()
   return (
-    <section className="tf-panel p-4" aria-labelledby={id}>
+    <section className="tf-frame p-4" aria-labelledby={id}>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 id={id} className="text-sm font-semibold tracking-wide text-dim uppercase">{title}</h2>
+        <h2 id={id} className="tf-section-title">{title}</h2>
         {actions}
       </div>
       {children}
@@ -123,9 +125,9 @@ export function Dialog({ open, title, onClose, children }: { open: boolean; titl
   if (!open) return null
   return (
     <dialog ref={ref} onCancel={(e) => { e.preventDefault(); onClose() }} aria-labelledby={titleId}
-      className="m-auto max-w-lg rounded-xl border border-line bg-panel p-0 text-ink backdrop:bg-black/60">
+      className="m-auto max-w-lg border border-linestrong border-t-2 border-t-signal bg-panel p-0 text-ink backdrop:bg-black/70">
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
-        <h2 id={titleId} className="font-semibold">{title}</h2>
+        <h2 id={titleId} className="font-display text-lg font-black tracking-wide uppercase">{title}</h2>
         <button type="button" className="text-dim hover:text-ink" onClick={onClose} aria-label="Close dialog">✕</button>
       </div>
       <div className="p-4">{children}</div>
@@ -141,14 +143,16 @@ export function Toast({ message, onDone }: { message: string | null; onDone: () 
   }, [message, onDone])
   if (!message) return null
   return (
-    <div role="status" aria-live="polite" className="fixed bottom-4 right-4 z-50 rounded-lg border border-signal/40 bg-panel px-4 py-2 text-sm shadow-lg">
+    <div role="status" aria-live="polite" className="tf-rise fixed right-4 bottom-4 z-50 border border-signal/50 border-l-4 border-l-signal bg-panel px-4 py-2.5 text-sm shadow-lg">
       {message}
     </div>
   )
 }
 
 /** WAI-ARIA tabs: one tab stop (roving tabindex); Arrow/Home/End move selection and focus. */
-export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs: { id: T; label: string; count?: number }[]; value: T; onChange: (t: T) => void; label: string }) {
+export function Tabs<T extends string>({ tabs, value, onChange, label, numbered = false }: {
+  tabs: { id: T; label: string; count?: number; hint?: string }[]; value: T; onChange: (t: T) => void; label: string; numbered?: boolean
+}) {
   const refs = useRef<Record<string, HTMLButtonElement | null>>({})
   const go = (i: number) => {
     const t = tabs[(i + tabs.length) % tabs.length]
@@ -156,8 +160,8 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
     refs.current[t.id]?.focus()
   }
   return (
-    <div role="tablist" aria-label={label} className="flex gap-0.5 overflow-x-auto border-b border-line">
-      {tabs.map((t) => (
+    <div role="tablist" aria-label={label} className="tf-tabs">
+      {tabs.map((t, i) => (
         <button
           key={t.id}
           ref={(el) => {
@@ -169,6 +173,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
           aria-selected={value === t.id}
           aria-controls={`panel-${t.id}`}
           tabIndex={value === t.id ? 0 : -1}
+          title={t.hint}
           onClick={() => onChange(t.id)}
           onKeyDown={(e) => {
             const i = tabs.findIndex((x) => x.id === value)
@@ -178,10 +183,11 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: { tabs:
               go(keys[e.key])
             }
           }}
-          className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-2.5 py-2 text-[13px] font-medium ${value === t.id ? 'border-signal text-ink' : 'border-transparent text-dim hover:text-ink'}`}
+          className="tf-tab"
         >
+          {numbered && <span className="tf-tab-num" aria-hidden>{String(i + 1).padStart(2, '0')}</span>}
           {t.label}
-          {t.count !== undefined && <span className="ml-1.5 text-xs text-faint">{t.count}</span>}
+          {t.count !== undefined && <span className="tf-tab-count">{t.count}</span>}
         </button>
       ))}
     </div>

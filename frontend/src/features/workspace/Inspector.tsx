@@ -5,6 +5,7 @@ import { useApi } from '../../lib/hooks'
 import type { CrossChainLink, Evidence, FusionRelationship, Label, PrivacyGap, Score, Transfer } from '../../lib/types'
 import { EXPANSION_LABEL, ORIGIN_LABEL, STATUS_LABEL, fmtAmount, fmtDuration, fmtTime, short } from '../../lib/format'
 import { Addr, Copy, ErrorBox, ExtLink, Spinner, StatusPill } from '../../components/ui'
+import { Character } from '../../components/characters'
 import { ScoreBreakdown } from './ScoresView'
 import { filterParams, type Filter, type Selection } from './state'
 
@@ -27,17 +28,18 @@ export default function Inspector(p: Props) {
   const s = p.selection
   if (!s) {
     return (
-      <div className="p-4 text-sm text-dim">
-        <p className="mb-2 font-medium text-ink">Inspector</p>
-        Click a wallet or a transfer in the fund flow (or a row in any other view) to see what moved, when, and the evidence behind it — with every original source linked.
+      <div className="p-5 text-sm text-dim">
+        <span className="mb-3 block" aria-hidden><Character kind="snoop" size={76} /></span>
+        <p className="tf-section-title mb-3">Inspector</p>
+        <p>Select a wallet, a transfer or any row to see what moved, when, and the evidence behind it — every original source linked.</p>
       </div>
     )
   }
   return (
     <div className="space-y-3 p-3 text-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-xs tracking-wide text-faint uppercase">{KIND_TITLE[s.kind]}</p>
-        <button className="text-xs text-dim hover:text-ink" onClick={() => p.onSelect(null)} aria-label="Close inspector">✕ close</button>
+      <div className="-mx-3 -mt-3 flex items-center justify-between border-b border-line bg-elev px-3 py-2">
+        <p className="tf-section-title">{KIND_TITLE[s.kind]}</p>
+        <button className="tf-btn tf-btn-ghost px-2 py-0.5 text-xs" onClick={() => p.onSelect(null)} aria-label="Close inspector">✕ close</button>
       </div>
       {s.kind === 'node' && <NodePanel {...p} address={s.address} />}
       {s.kind === 'edge' && <EdgePanel {...p} source={s.source} target={s.target} />}
@@ -70,7 +72,7 @@ function CaseActions({ caseId, targetType, targetId, onCaseChanged, label }: { c
   const [err, setErr] = useState<unknown>(null)
   if (!caseId) return null
   return (
-    <div className="space-y-2 rounded-md border border-line p-2">
+    <div className="space-y-2 border border-line bg-elev p-2">
       <button className="tf-btn py-1 text-xs" onClick={() => api(`/api/cases/${caseId}/bookmarks`, { method: 'POST', json: { target_type: targetType, target_id: targetId, label: label ?? null } })
         .then(() => onCaseChanged('Bookmarked')).catch(setErr)}>☆ Bookmark</button>
       <form className="flex gap-1" onSubmit={(e) => { e.preventDefault(); if (!note.trim()) return; api(`/api/cases/${caseId}/notes`, { method: 'POST', json: { target_type: targetType, target_id: targetId, body: note } })
@@ -93,6 +95,7 @@ function NodePanel({ invId, caseId, filter, address, onSelect, onHide, onCaseCha
   return (
     <>
       <div>
+        {(data.meta.name || data.meta.labels?.[0]) && <p className="font-display text-lg leading-tight font-black uppercase">{data.meta.name ?? data.meta.labels?.[0]?.label}</p>}
         <p className="mono break-hash text-ink"><span data-testid="selected-address">{data.address}</span><Copy text={data.address} /></p>
         <p className="text-xs text-faint">{data.meta.is_contract ? 'Contract' : data.meta.is_contract === false ? 'Wallet (externally owned account)' : 'Type unknown'} · {data.chain} · <ExtLink href={data.explorer_url}>explorer</ExtLink></p>
         <p className="text-xs text-faint">Tracing status: {EXPANSION_LABEL[data.meta.expansion_status ?? ''] ?? data.meta.expansion_status}{data.meta.note ? ` — ${data.meta.note}` : ''}</p>
@@ -119,7 +122,7 @@ function NodePanel({ invId, caseId, filter, address, onSelect, onHide, onCaseCha
               ['Typical holding time', fmtDuration(m.median_dwell_seconds as number | null), 'Median time between receiving and sending on funds (dwell)'],
               ['Pass-through share', m.pass_through_ratio ?? '—', 'Share of received value that was sent on (pass-through ratio)'],
             ] as [string, unknown, string][]).map(([k, v, help]) => (
-              <div key={k} className="rounded border border-line p-1" title={help}><p className="text-faint">{k}</p><p className="mono">{v === null || v === undefined ? '—' : String(v)}</p></div>
+              <div key={k} className="border border-line bg-elev px-2 py-1.5" title={help}><p className="text-faint">{k}</p><p className="mono text-[13px] text-ink">{v === null || v === undefined ? '—' : String(v)}</p></div>
             ))}
           </div>
           <details className="text-xs">
@@ -127,7 +130,7 @@ function NodePanel({ invId, caseId, filter, address, onSelect, onHide, onCaseCha
             <div className="mt-1 grid grid-cols-3 gap-1">
               {[['hop forward', m.hop.forward], ['hop backward', m.hop.backward], ['hop any direction', m.hop.undirected], ['pagerank', m.pagerank ?? '—'],
                 ['betweenness', m.betweenness ?? '—'], ['transfers / day', m.frequency_per_day ?? '—']].map(([k, v]) => (
-                <div key={String(k)} className="rounded border border-line p-1"><p className="text-faint">{String(k)}</p><p className="mono">{v === null || v === undefined ? '—' : String(v)}</p></div>
+                <div key={String(k)} className="border border-line bg-elev px-2 py-1.5"><p className="text-faint">{String(k)}</p><p className="mono">{v === null || v === undefined ? '—' : String(v)}</p></div>
               ))}
             </div>
           </details>
@@ -139,10 +142,10 @@ function NodePanel({ invId, caseId, filter, address, onSelect, onHide, onCaseCha
       )}
       {data.score && (
         <details open={data.score.category === 'candidate'}>
-          <summary className="cursor-pointer font-medium" title="A ranking heuristic to prioritise review. It is not a probability and does not identify anyone.">
+          <summary className="cursor-pointer border-l-2 border-hypo pl-2 font-semibold" title="A ranking heuristic to prioritise review. It is not a probability and does not identify anyone.">
             Lead score (heuristic, not a probability): {data.score.score.toFixed(1)} · {data.score.band}
           </summary>
-          <ScoreBreakdown signals={data.score.signals} />
+          <div className="overflow-x-auto [&_table]:min-w-[520px]"><ScoreBreakdown signals={data.score.signals} /></div>
           {data.score.caps_applied.map((c) => <p key={c} className="text-xs text-hypo">{c}</p>)}
         </details>
       )}
@@ -154,7 +157,7 @@ function NodePanel({ invId, caseId, filter, address, onSelect, onHide, onCaseCha
           {data.evidence.length === 0 && <li className="text-xs text-faint">No external evidence for this address.</li>}
         </ul>
       </div>
-      {data.privacy_gaps.length > 0 && <p className="rounded border border-intel/40 p-2 text-xs">{data.privacy_gaps[0].explanation}</p>}
+      {data.privacy_gaps.length > 0 && <p className="border border-intel/40 border-l-2 border-l-intel p-2 text-xs">{data.privacy_gaps[0].explanation}</p>}
       {data.limitations.length > 0 && <ul className="text-xs text-hypo">{data.limitations.map((l) => <li key={l}>⚠ {l}</li>)}</ul>}
       <div className="flex flex-wrap gap-2">
         <button className="tf-btn py-1 text-xs" onClick={() => onHide(data.address)}>Hide from graph</button>
@@ -202,7 +205,7 @@ function TransfersPanel({ invId, ids, title, onSelect }: Props & { ids: string[]
 export function TransferTable({ transfers, perspective, onSelect }: { transfers: Transfer[]; perspective?: string; onSelect: (s: Selection) => void }) {
   if (!transfers.length) return <p className="text-xs text-faint">No transfers in the current filter.</p>
   return (
-    <div className="max-h-96 overflow-auto rounded border border-line">
+    <div className="max-h-96 overflow-auto border border-line">
       <table className="tf-table">
         <thead><tr><th>Time (UTC)</th><th>{perspective ? 'Dir · counterparty' : 'From → To'}</th><th>Amount</th><th>Tx</th></tr></thead>
         <tbody>
@@ -238,7 +241,7 @@ function EvidencePanel({ caseId, ev, onSelect, reviews, onCaseChanged }: Props &
   const attrs = ev.attributes ?? {}
   return (
     <>
-      <p className="font-medium">{ev.title}</p>
+      <p className="font-semibold text-ink">{ev.title}</p>
       <div className="flex flex-wrap gap-1"><StatusPill status={ev.assertion_status} /><span className="tf-badge">{ev.kind.replace(/_/g, ' ')}</span><span className="tf-badge">confidence: {ev.confidence}</span>
         <span className="tf-badge">{ORIGIN_LABEL[ev.data_origin] ?? ev.data_origin}</span></div>
       <dl className="space-y-1 text-xs">
@@ -252,7 +255,7 @@ function EvidencePanel({ caseId, ev, onSelect, reviews, onCaseChanged }: Props &
         {ev.source_item_id && <Row k="Item"><span className="mono break-hash">{ev.source_item_id}</span></Row>}
       </dl>
       {ev.snippet && (
-        <blockquote className="rounded border-l-2 border-intel bg-elev p-2 text-xs whitespace-pre-wrap">{ev.snippet}</blockquote>
+        <blockquote className="border-l-2 border-intel bg-elev p-2 text-xs whitespace-pre-wrap">{ev.snippet}</blockquote>
       )}
       {Array.isArray(attrs.context_terms) && (attrs.context_terms as string[]).length > 0 && <p className="text-xs">Context terms: {(attrs.context_terms as string[]).join(', ')}</p>}
       {Array.isArray(attrs.co_mentioned_indicators) && (attrs.co_mentioned_indicators as string[]).length > 0 && (
@@ -281,7 +284,7 @@ function RelationshipPanel({ caseId, rel, onSelect, onCaseChanged }: Props & { r
   const goto = (id: string) => id.startsWith('wallet:') ? <Addr a={id.split(':')[2]} onClick={() => onSelect({ kind: 'node', address: id.split(':')[2] })} /> : <span className="mono break-hash">{id}</span>
   return (
     <>
-      <p className="font-medium">{rel.type.replace(/_/g, ' ')}</p>
+      <p className="font-display text-lg font-black uppercase">{rel.type.replace(/_/g, ' ')}</p>
       <div className="flex flex-wrap gap-1"><StatusPill status={rel.assertion_status} /><span className="tf-badge">confidence: {rel.confidence}</span></div>
       <p className="text-xs">{goto(rel.source)} → {goto(rel.target)}</p>
       <p className="text-xs text-dim">{STATUS_LABEL[rel.assertion_status]} · method: {rel.method ?? '—'}</p>
@@ -295,7 +298,7 @@ function RelationshipPanel({ caseId, rel, onSelect, onCaseChanged }: Props & { r
       </dl>
       {rel.caveats.filter(Boolean).length > 0 && <ul className="text-xs text-hypo">{rel.caveats.filter(Boolean).map((c) => <li key={c!}>⚠ {c}</li>)}</ul>}
       {caseId && (
-        <form className="space-y-1 rounded-md border border-analyst/40 p-2" onSubmit={(e) => { e.preventDefault(); if (!rationale.trim()) return
+        <form className="space-y-1 border border-analyst/40 p-2" onSubmit={(e) => { e.preventDefault(); if (!rationale.trim()) return
           api(`/api/cases/${caseId}/hypotheses`, { method: 'POST', json: { source_entity: rel.source, target_entity: rel.target, relation, rationale } })
             .then(() => { setRationale(''); onCaseChanged('Analyst hypothesis added (shown in fusion graph)') }).catch(setErr) }}>
           <p className="text-xs font-medium text-analyst">Record analyst hypothesis about these entities</p>

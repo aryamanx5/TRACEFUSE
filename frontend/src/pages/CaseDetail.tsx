@@ -55,7 +55,8 @@ export default function CaseDetail() {
             </form>
           ) : (
             <>
-              <h1 className="text-2xl font-semibold">{c.title}</h1>
+              <p className="tf-kicker mb-2 flex items-center gap-2"><span className="tf-kicker-dot" aria-hidden />Case file</p>
+              <h1 className="tf-pagehead-title">{c.title}</h1>
               <p className="max-w-2xl text-dim">{c.description || 'No description.'}</p>
               <p className="mt-1 text-xs text-faint">
                 {c.origin === 'historical_case' ? 'Historical case — recorded public data, replayed' : 'Live case'} · created {fmtTime(c.created_at)} · updated {fmtTime(c.updated_at)}
@@ -102,7 +103,7 @@ export default function CaseDetail() {
           </form>
           <ul className="space-y-2">
             {c.notes.map((n) => (
-              <li key={n.id} className="rounded-md border border-line p-2 text-sm">
+              <li key={n.id} className="border border-line p-2 text-sm">
                 <p className="text-xs text-faint">{n.target_type}{n.target_id ? ` · ${short(n.target_id, 8)}` : ''} · {fmtTime(n.updated_at)}</p>
                 <p className="whitespace-pre-wrap">{n.body}</p>
                 <button className="mt-1 text-xs text-danger hover:underline" aria-label={`Delete note: ${n.body.slice(0, 40)}`} onClick={() => void act(() => api(`/api/cases/${c.id}/notes/${n.id}`, { method: 'DELETE' }), 'Note deleted')}>Delete</button>

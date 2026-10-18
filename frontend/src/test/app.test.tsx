@@ -33,18 +33,24 @@ function at(path: string, el: React.ReactNode, route = '*') {
 }
 
 describe('landing page', () => {
-  it('renders all five chapters with real destinations', () => {
+  it('renders every chapter, the crew and real destinations', () => {
     at('/', <Landing />, '/')
     expect(screen.getByRole('heading', { level: 1, name: /TRACEFUSE Follow the money\. Find the signal\./ })).toBeInTheDocument()
-    for (const h of ['One exploit. Hundreds of paths.', 'The clues exist. They don’t connect.', 'Connect the evidence. Not just the dots.', 'Every connection needs a reason.'])
+    for (const h of ['One exploit. Hundreds of paths.', 'The clues exist. They don’t connect.', 'Connect the evidence. Not just the dots.',
+      'Every colour has a job.', 'From one wallet to a case file.', 'Every connection needs a reason.', 'Welcome to the Investigation Room'])
       expect(screen.getByRole('heading', { level: 2, name: h })).toBeInTheDocument()
-    for (const id of ['signal', 'fragmentation', 'disconnected', 'fusion', 'enter']) expect(document.getElementById(id)).not.toBeNull()
-    expect(screen.getByRole('link', { name: 'Explore the investigation' })).toHaveAttribute('href', '/app')
-    expect(screen.getByRole('link', { name: 'Enter Investigation Room' })).toHaveAttribute('href', '/app')
+    for (const id of ['signal', 'fragmentation', 'disconnected', 'fusion', 'capabilities', 'enter']) expect(document.getElementById(id)).not.toBeNull()
+    const enter = screen.getAllByRole('link', { name: 'Enter the investigation' })
+    expect(enter).toHaveLength(2)
+    for (const l of enter) expect(l).toHaveAttribute('href', '/app')
+    expect(screen.getByRole('link', { name: 'Explore the Ronin case' })).toHaveAttribute('href', '/app/historical')
+    expect(screen.getByRole('link', { name: 'Start an investigation' })).toHaveAttribute('href', '/app/new')
     for (const l of screen.getAllByRole('link', { name: 'Investigation Room' })) expect(l).toHaveAttribute('href', '/app')
     expect(screen.getByRole('button', { name: 'Replay the story' })).toBeInTheDocument()
     expect(screen.getByText(/Illustrative branching path — not live transaction data/)).toBeInTheDocument()
     expect(screen.getByText('Illustrative diagram.')).toBeInTheDocument()
+    // the crew doubles as the colour legend
+    for (const role of ['Verified on-chain', 'Reported by a source', 'Unconfirmed link']) expect(screen.getByText(role)).toBeInTheDocument()
   })
   it('respects reduced motion: poster only, no scrubbed video', () => {
     // setup.ts matchMedia reports prefers-reduced-motion: reduce

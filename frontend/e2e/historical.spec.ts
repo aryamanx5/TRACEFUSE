@@ -34,7 +34,7 @@ test('historical Ronin investigation: wallet inspection, transaction evidence an
 test('ChronoReplay playback, stepping and time-window filtering drive the graph', async ({ page }) => {
   await openHistoricalCase(page)
   const replay = page.getByRole('region', { name: 'ChronoReplay timeline' })
-  const graphTab = page.getByRole('tab', { name: /Fund flow/ })
+  const graphTab = page.getByRole('tab', { name: /Money flow/ })
   const count = async () => Number((await graphTab.textContent())!.replace(/\D/g, '') || 0)
   await expect.poll(count).toBeGreaterThan(50) // graph loaded
   const fullCount = await count()
@@ -53,6 +53,7 @@ test('ChronoReplay playback, stepping and time-window filtering drive the graph'
   await expect(replay.getByText(/173,60\d/)).toBeVisible()
 
   // apply cursor as the analysis window end → every view is refiltered server-side
+  await replay.locator('summary', { hasText: 'Time window' }).click() // the window controls live in a popover
   await replay.getByRole('button', { name: 'Analyse up to this moment' }).click()
   await expect(replay.getByLabel('To')).not.toHaveValue('')
   await expect.poll(count).toBeLessThan(fullCount)
@@ -91,7 +92,7 @@ test('Matrix Mode: value measure, cell selection and underlying transaction dril
 
 test('Evidence Fusion graph: statuses, conflicts and relationship details', async ({ page }) => {
   await openHistoricalCase(page)
-  await page.getByRole('tab', { name: 'Evidence fusion' }).click()
+  await page.getByRole('tab', { name: 'Connected evidence' }).click()
   const panel = page.getByRole('tabpanel')
   await expect(panel.getByText(/Competing \/ changing evidence/)).toBeVisible()
   await expect(panel.getByText(/designation and removal actions over time/)).toBeVisible()
@@ -108,14 +109,14 @@ test('Evidence Fusion graph: statuses, conflicts and relationship details', asyn
   await panel.getByLabel('Source-reported information').uncheck()
   await expect(countText).not.toHaveText(before!)
   // the mixer is reported as an unresolved blind spot, not traced through
-  await page.getByRole('tab', { name: 'Cross-chain' }).click()
+  await page.getByRole('tab', { name: 'Across blockchains' }).click()
   await expect(page.getByRole('tabpanel').getByText(TORNADO_ROUTER)).toBeVisible()
   await expect(page.getByRole('tabpanel').getByText('unresolved').first()).toBeVisible()
 })
 
 test('explainable ranking re-evaluates with toggled signals', async ({ page }) => {
   await openHistoricalCase(page)
-  await page.getByRole('tab', { name: 'Ranking' }).click()
+  await page.getByRole('tab', { name: 'Priority leads' }).click()
   const panel = page.getByRole('tabpanel')
   await expect(panel.getByText(/Not a probability/)).toBeVisible()
   const firstScore = panel.locator('tbody tr').first().locator('td').nth(2)
@@ -159,7 +160,7 @@ test('HTML, JSON and CSV exports are downloadable and populated', async ({ page 
 
 test('filters: asset selection and hidden wallets refilter the graph server-side', async ({ page }) => {
   await openHistoricalCase(page)
-  const graphTab = page.getByRole('tab', { name: /Fund flow/ })
+  const graphTab = page.getByRole('tab', { name: /Money flow/ })
   const count = async () => Number((await graphTab.textContent())!.replace(/\D/g, '') || 0)
   await expect.poll(count).toBeGreaterThan(50)
   const full = await count()
@@ -169,12 +170,14 @@ test('filters: asset selection and hidden wallets refilter the graph server-side
   await expect.poll(count).toBeLessThan(full)
   await page.getByRole('checkbox', { name: /^USDC/ }).uncheck()
   await expect.poll(count).toBe(full)
+  await page.locator('summary', { hasText: 'Filters' }).click() // close the filter popover
 
   const inspector = await selectWallet(page, LAUNDER_WALLET)
   await inspector.getByRole('button', { name: 'Hide from graph' }).click()
   await expect(page.getByText(/Hidden 0x5967/)).toBeVisible()
   await expect.poll(count).toBeLessThan(full)
   await expect(page.getByText('1 hidden')).toBeVisible()
+  await page.locator('summary', { hasText: 'Filters' }).click()
   await page.getByRole('button', { name: /^Show 0x[0-9a-f]+ in views again$/ }).click()
   await expect.poll(count).toBe(full)
 })

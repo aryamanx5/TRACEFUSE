@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { useApi, useDebounced } from '../lib/hooks'
 import type { CaseSummary, ChainInfo, Investigation } from '../lib/types'
 import { ErrorBox } from '../components/ui'
+import { PageHead } from '../components/brand'
 
 interface Validation {
   valid: boolean
@@ -111,9 +112,8 @@ export default function NewInvestigation() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-1 text-2xl font-semibold">New investigation</h1>
-      <p className="mb-4 text-dim">Enter a wallet address or transaction hash. Traversal is bounded server-side; every record keeps its provider provenance.</p>
-      <form onSubmit={submit} className="tf-panel space-y-5 p-5" noValidate>
+      <div className="mb-5"><PageHead mascot="hexo" kicker="Start a trace" title="New investigation" lede="Enter a wallet address or transaction hash. The trace is bounded on the server, and every record keeps its provider provenance." /></div>
+      <form onSubmit={submit} className="tf-frame space-y-5 p-5" noValidate>
         <div>
           <label htmlFor="seed" className="tf-label">Seed — address (0x + 40 hex) or transaction hash (0x + 64 hex)</label>
           <input id="seed" className="tf-input mono" value={seed} onChange={(e) => setSeed(e.target.value)} autoComplete="off"

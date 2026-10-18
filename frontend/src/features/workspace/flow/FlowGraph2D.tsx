@@ -29,7 +29,20 @@ function cssVar(name: string, fallback: string) {
 }
 
 function defs(model: FlowModel): ElementDefinition[] {
-  const top = Math.min(0, ...model.nodes.map((n) => n.y)) - 74
+  const ys = model.nodes.map((n) => n.y)
+  const top = Math.min(0, ...ys) - 74
+  const bottom = Math.max(0, ...ys) + 40
+  const xs = [...model.columns].map((c) => c.x).sort((a, b) => a - b)
+  const step = xs.length > 1 ? Math.min(...xs.slice(1).map((x, i) => x - xs[i])) : 240
+  // quiet vertical bands behind each hop column: the eye reads "hop 1, hop 2…" before reading any label
+  const bands: ElementDefinition[] = model.columns.map((c) => ({
+    group: 'nodes',
+    data: { id: `band:${c.col}`, w: step * 0.84, h: bottom - top + 60 },
+    position: { x: c.x, y: (top + bottom) / 2 + 14 },
+    classes: `band ${c.col === 0 ? 'band-0' : Math.abs(c.col) % 2 ? 'band-odd' : 'band-even'}`,
+    selectable: false,
+    grabbable: false,
+  }))
   const heads: ElementDefinition[] = model.columns.map((c) => ({
     group: 'nodes',
     data: { id: `col:${c.col}`, col: c.col, label: `${c.label.toUpperCase()}\n${c.shown === c.total ? `${c.total} wallet${c.total === 1 ? '' : 's'}` : `${c.shown} of ${c.total} shown`}` },
@@ -52,7 +65,7 @@ function defs(model: FlowModel): ElementDefinition[] {
     },
     classes: [`e-${e.kind}`, e.back ? 'back' : 'fwd'].join(' '),
   }))
-  return [...heads, ...nodes, ...edges]
+  return [...bands, ...heads, ...nodes, ...edges]
 }
 
 /** Layered left-to-right fund-flow tree (Cytoscape, preset positions from the shared model). */
@@ -69,7 +82,7 @@ export const FlowGraph2D = forwardRef<ViewHandle, Props>(function FlowGraph2D(p,
 
   /** Fit everything; if that makes wallets unreadably small, fit the story around the start instead. */
   const fitView = (c: Core, animate: boolean) => {
-    let eles = c.elements()
+    let eles = c.elements().not('.band')
     const zoomFor = (e: cytoscape.CollectionReturnValue) => {
       const bb = e.boundingBox()
       return Math.min((c.width() - 96) / Math.max(bb.w, 1), (c.height() - 96) / Math.max(bb.h, 1))
@@ -88,15 +101,17 @@ export const FlowGraph2D = forwardRef<ViewHandle, Props>(function FlowGraph2D(p,
   // mount once
   useEffect(() => {
     if (!box.current) return
-    const signal = cssVar('--signal', '#2dd4bf')
-    const signal2 = cssVar('--signal-2', '#22d3ee')
-    const hypo = cssVar('--hypo', '#f59e0b')
-    const text = cssVar('--text', '#e6edf7')
-    const dim = cssVar('--text-dim', '#9fb0c8')
-    const faint = cssVar('--text-faint', '#8a9bb6')
-    const panel = cssVar('--panel-2', '#142038')
-    const bg = cssVar('--bg', '#070b14')
-    const line = cssVar('--line-strong', '#2c3d5e')
+    const signal = cssVar('--signal', '#5ef2c2')
+    const signal2 = cssVar('--signal-2', '#3fd0ff')
+    const hypo = cssVar('--hypo', '#ffb03a')
+    const ember = cssVar('--ember', '#ff7a3d')
+    const text = cssVar('--text', '#f1efe7')
+    const dim = cssVar('--text-dim', '#b9b7ae')
+    const faint = cssVar('--text-faint', '#908e86')
+    const panel = cssVar('--panel-2', '#202224')
+    const bg = cssVar('--bg', '#0e0f10')
+    const line = cssVar('--line-strong', '#3b3e42')
+    const font = 'Inter, system-ui, sans-serif'
     const c = cytoscape({
       container: box.current,
       minZoom: 0.04,
@@ -104,48 +119,61 @@ export const FlowGraph2D = forwardRef<ViewHandle, Props>(function FlowGraph2D(p,
       boxSelectionEnabled: false,
       style: [
         { selector: 'node', style: {
-          width: 14, height: 14, 'background-color': panel, 'border-width': 1.6, 'border-color': signal, 'border-opacity': 0.75,
-          label: '', color: dim, 'font-size': 11, 'font-family': 'Inter, system-ui, sans-serif', 'text-valign': 'bottom', 'text-margin-y': 5,
-          'text-background-color': bg, 'text-background-opacity': 0.75, 'text-background-padding': '2px', 'text-max-width': '130px', 'text-wrap': 'ellipsis',
+          width: 13, height: 13, 'background-color': panel, 'border-width': 1.6, 'border-color': signal, 'border-opacity': 0.8,
+          label: '', color: dim, 'font-size': 11, 'font-family': font, 'text-valign': 'bottom', 'text-margin-y': 6, 'min-zoomed-font-size': 7,
+          'text-background-color': bg, 'text-background-opacity': 0.82, 'text-background-padding': '3px', 'text-background-shape': 'roundrectangle',
+          'text-max-width': '128px', 'text-wrap': 'ellipsis', 'z-index': 10,
           'transition-property': 'opacity, border-color, background-color, width, height', 'transition-duration': 220,
         } },
+        { selector: 'node.band', style: {
+          shape: 'rectangle', width: 'data(w)', height: 'data(h)', 'background-color': text, 'background-opacity': 0.022, 'border-width': 0,
+          events: 'no', 'z-index': 0, label: '', 'transition-duration': 0,
+        } },
+        { selector: 'node.band-odd', style: { 'background-opacity': 0.035 } },
+        { selector: 'node.band-0', style: { 'background-color': signal, 'background-opacity': 0.05 } },
         { selector: 'node.showlabel', style: { label: 'data(label)' } },
         { selector: 'node.k-seed', style: {
-          width: 36, height: 36, 'background-color': signal, 'border-color': signal2, 'border-width': 3, label: 'data(label)', color: text,
-          'font-size': 12, 'font-weight': 'bold', 'underlay-color': signal, 'underlay-opacity': 0.22, 'underlay-padding': 12, 'underlay-shape': 'ellipse',
+          shape: 'rectangle', width: 30, height: 30, 'background-color': signal, 'border-color': bg, 'border-width': 3, 'outline-color': signal2, 'outline-width': 2,
+          'outline-offset': 2, label: 'data(label)', color: text, 'font-size': 12, 'font-weight': 'bold', 'min-zoomed-font-size': 0,
+          'underlay-color': signal, 'underlay-opacity': 0.18, 'underlay-padding': 14, 'underlay-shape': 'round-rectangle',
         } },
-        { selector: 'node.k-contract', style: { shape: 'round-rectangle' } },
+        { selector: 'node.k-contract', style: { shape: 'round-rectangle', width: 15, height: 12 } },
         { selector: 'node.k-bridge', style: { shape: 'diamond', width: 22, height: 22, 'border-color': signal2, 'border-width': 2.5, label: 'data(label)', color: text } },
-        { selector: 'node.k-exchange', style: { shape: 'hexagon', width: 22, height: 22, 'border-color': signal2, 'border-width': 2.5, label: 'data(label)', color: text } },
-        { selector: 'node.k-mixer', style: { shape: 'octagon', width: 24, height: 24, 'border-color': hypo, 'border-width': 3, 'border-style': 'double', label: 'data(label)', color: text } },
-        { selector: 'node.flagged', style: { 'border-color': hypo, 'border-width': 3, 'background-color': hypo, 'background-opacity': 0.28, label: 'data(label)', color: text } },
-        { selector: 'node.k-seed.flagged', style: { 'background-color': signal, 'background-opacity': 1, 'border-color': hypo } },
+        { selector: 'node.k-exchange', style: { shape: 'hexagon', width: 22, height: 20, 'border-color': signal2, 'border-width': 2.5, label: 'data(label)', color: text } },
+        { selector: 'node.k-mixer', style: { shape: 'octagon', width: 24, height: 24, 'background-color': ember, 'background-opacity': 0.25, 'border-color': ember, 'border-width': 3, 'border-style': 'double', label: 'data(label)', color: text } },
+        { selector: 'node.flagged', style: { 'border-color': hypo, 'border-width': 3, 'background-color': hypo, 'background-opacity': 0.3, label: 'data(label)', color: text } },
+        { selector: 'node.k-seed.flagged', style: { 'background-color': signal, 'background-opacity': 1, 'border-color': bg, 'outline-color': hypo } },
         { selector: 'node.k-more', style: {
-          shape: 'round-rectangle', width: 150, height: 26, 'background-color': bg, 'border-style': 'dashed', 'border-color': line, 'border-width': 1.4,
-          label: 'data(label)', 'text-valign': 'center', 'text-margin-y': 0, color: faint, 'font-size': 10, 'text-background-opacity': 0,
+          shape: 'round-rectangle', width: 150, height: 26, 'background-color': bg, 'background-opacity': 0.9, 'border-style': 'dashed', 'border-color': line, 'border-width': 1.4,
+          label: 'data(label)', 'text-valign': 'center', 'text-margin-y': 0, color: faint, 'font-size': 10, 'text-background-opacity': 0, 'min-zoomed-font-size': 0,
         } },
         { selector: 'node.colhead', style: {
           shape: 'rectangle', width: 1, height: 1, 'background-opacity': 0, 'border-width': 0, label: 'data(label)', 'text-valign': 'center',
-          'text-wrap': 'wrap', 'text-max-width': '220px', color: faint, 'font-size': 10, 'font-weight': 'bold', 'text-background-opacity': 0, events: 'no',
+          'text-wrap': 'wrap', 'text-max-width': '220px', color: faint, 'font-size': 10, 'font-weight': 'bold', 'font-family': 'JetBrains Mono, monospace',
+          'text-background-opacity': 0, events: 'no', 'min-zoomed-font-size': 0,
         } },
         { selector: 'edge', style: {
-          width: 'data(w)', 'line-color': signal, 'line-opacity': 0.5, 'target-arrow-shape': 'triangle', 'target-arrow-color': signal, 'arrow-scale': 0.75,
-          'curve-style': 'taxi', 'taxi-direction': 'rightward', 'taxi-turn': '45%', 'taxi-turn-min-distance': 12,
-          'font-size': 9, color: text, 'text-background-color': bg, 'text-background-opacity': 0.85, 'text-background-padding': '2px',
+          width: 'data(w)', 'line-color': signal, 'line-opacity': 0.42, 'target-arrow-shape': 'triangle', 'target-arrow-color': signal, 'arrow-scale': 0.8,
+          'curve-style': 'round-taxi', 'taxi-direction': 'rightward', 'taxi-turn': '45%', 'taxi-turn-min-distance': 12, 'taxi-radius': 14,
+          'font-size': 10, 'font-family': font, color: text, 'text-background-color': bg, 'text-background-opacity': 0.9, 'text-background-padding': '3px',
+          'text-background-shape': 'roundrectangle', 'text-border-color': line, 'text-border-width': 1, 'text-border-opacity': 1, 'z-index': 5,
           'transition-property': 'opacity, line-color, width, line-opacity', 'transition-duration': 220,
         } },
         { selector: 'edge.back', style: { 'curve-style': 'unbundled-bezier', 'control-point-distances': [40], 'control-point-weights': [0.5] } },
-        { selector: 'edge.e-zero', style: { 'line-style': 'dashed', 'line-color': line, 'target-arrow-color': line, 'line-opacity': 0.8 } },
+        { selector: 'edge.e-zero', style: { 'line-style': 'dashed', 'line-dash-pattern': [5, 4], 'line-color': line, 'target-arrow-color': line, 'line-opacity': 0.8 } },
         { selector: 'edge.e-more', style: { 'line-style': 'dashed', 'line-color': line, 'target-arrow-color': line, 'line-opacity': 0.7, width: 1.2 } },
         { selector: 'edge.e-inferred', style: {
-          'curve-style': 'unbundled-bezier', 'control-point-distances': [-30], 'line-style': 'dotted', 'line-color': hypo, 'line-opacity': 0.75,
-          'target-arrow-shape': 'none', width: 1.6,
+          'curve-style': 'unbundled-bezier', 'control-point-distances': [-30], 'line-style': 'dotted', 'line-color': hypo, 'line-opacity': 0.8,
+          'target-arrow-shape': 'none', width: 1.8,
         } },
-        { selector: 'edge.hl, edge:selected', style: { label: 'data(label)', 'line-opacity': 1, 'line-color': signal2, 'target-arrow-color': signal2 } },
+        { selector: 'edge.hl, edge:selected', style: { label: 'data(label)', 'line-opacity': 1, 'line-color': signal2, 'target-arrow-color': signal2, 'z-index': 8 } },
         { selector: 'edge.onpath', style: { 'line-opacity': 1, 'line-color': signal2, 'target-arrow-color': signal2, width: 4, label: 'data(label)', 'z-index': 9 } },
-        { selector: 'node.onpath', style: { 'border-color': signal2, 'border-width': 3, label: 'data(label)', color: text, 'z-index': 9 } },
-        { selector: 'node.sel', style: { 'underlay-color': signal2, 'underlay-opacity': 0.35, 'underlay-padding': 9, 'underlay-shape': 'ellipse', label: 'data(label)', color: text, 'z-index': 10 } },
-        { selector: '.dim', style: { opacity: 0.13 } },
+        { selector: 'node.onpath', style: { 'border-color': signal2, 'border-width': 3, label: 'data(label)', color: text, 'z-index': 11 } },
+        { selector: 'node.sel', style: {
+          'underlay-color': signal2, 'underlay-opacity': 0.32, 'underlay-padding': 9, 'underlay-shape': 'ellipse', label: 'data(label)', color: text,
+          'text-background-color': signal2, 'text-background-opacity': 0.22, 'z-index': 12, 'min-zoomed-font-size': 0,
+        } },
+        { selector: '.dim', style: { opacity: 0.12 } },
         { selector: 'edge.future', style: { 'line-opacity': 0.07, 'target-arrow-shape': 'none', label: '' } },
         { selector: 'node.future', style: { opacity: 0.2 } },
         { selector: 'edge.fresh', style: { 'line-color': signal2, 'line-opacity': 1, width: 5 } },
@@ -154,7 +182,7 @@ export const FlowGraph2D = forwardRef<ViewHandle, Props>(function FlowGraph2D(p,
     })
     c.on('tap', 'node', (e) => {
       const n = e.target
-      if (n.hasClass('colhead')) return
+      if (n.hasClass('colhead') || n.hasClass('band')) return
       if (n.hasClass('k-more')) latest.current.onExpandColumn(Number(n.data('col')))
       else latest.current.onSelect({ kind: 'node', address: n.id() })
     })
@@ -173,7 +201,7 @@ export const FlowGraph2D = forwardRef<ViewHandle, Props>(function FlowGraph2D(p,
     })
     c.on('mouseover', 'node', (e) => {
       const n = e.target
-      if (n.hasClass('colhead')) return
+      if (n.hasClass('colhead') || n.hasClass('band')) return
       const pos = n.renderedPosition()
       setHover({ x: pos.x, y: pos.y, nodeId: n.id() })
       if (box.current) box.current.style.cursor = 'pointer'
@@ -233,7 +261,7 @@ export const FlowGraph2D = forwardRef<ViewHandle, Props>(function FlowGraph2D(p,
     c.batch(() => {
       c.elements().removeClass('sel hl onpath dim showlabel')
       c.nodes().forEach((n) => {
-        if (n.hasClass('colhead')) return
+        if (n.hasClass('colhead') || n.hasClass('band')) return
         if (p.labels || n.hasClass('k-more')) n.addClass('showlabel')
       })
       if (sel) {
@@ -250,7 +278,7 @@ export const FlowGraph2D = forwardRef<ViewHandle, Props>(function FlowGraph2D(p,
       if (p.isolate && (pathNodes.size || sel)) {
         const keepN = new Set([...pathNodes, ...(sel ? [sel] : [])])
         if (!pathNodes.size && sel) c.getElementById(sel).neighborhood('node').forEach((n) => { keepN.add(n.id()) })
-        c.nodes().forEach((n) => { if (!n.hasClass('colhead') && !keepN.has(n.id())) n.addClass('dim') })
+        c.nodes().forEach((n) => { if (!n.hasClass('colhead') && !n.hasClass('band') && !keepN.has(n.id())) n.addClass('dim') })
         c.edges().forEach((e) => {
           const on = pathEdges.size ? pathEdges.has(e.id()) : keepN.has(e.data('source')) && keepN.has(e.data('target'))
           if (!on) e.addClass('dim')
@@ -276,7 +304,7 @@ export const FlowGraph2D = forwardRef<ViewHandle, Props>(function FlowGraph2D(p,
         else if (prev !== null && f > prev && at > prev) fresh.merge(e).merge(e.target())
       })
       c.nodes().forEach((n) => {
-        if (n.hasClass('k-seed') || n.hasClass('colhead') || n.hasClass('k-more')) return
+        if (n.hasClass('k-seed') || n.hasClass('colhead') || n.hasClass('band') || n.hasClass('k-more')) return
         const live = n.connectedEdges('.e-transfer, .e-zero').not('.future')
         if (live.empty()) n.addClass('future')
       })
@@ -315,7 +343,7 @@ export const FlowGraph2D = forwardRef<ViewHandle, Props>(function FlowGraph2D(p,
   const hoverNode = hover?.nodeId ? p.model.byId.get(hover.nodeId) : undefined
   const hoverEdge = hover?.edgeId ? p.model.edges.find((e) => e.id === hover.edgeId) : undefined
   return (
-    <div className="relative h-full min-h-[460px] w-full">
+    <div className="tf-canvas relative h-full min-h-[460px] w-full">
       <div ref={box} className="h-full w-full" data-testid="flow-2d" role="img"
         aria-label={`Fund flow from the starting wallet: ${p.model.shownWallets} of ${p.model.totalWallets} wallets drawn in hop columns. Use the wallet list for keyboard access.`} />
       {hover && (hoverNode || hoverEdge) && (

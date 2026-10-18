@@ -13,7 +13,7 @@ export function HoverCard({ x, y, node, edge, model, when }: {
   x: number; y: number; node?: FlowNode; edge?: FlowEdge; model: FlowModel; when?: string
 }) {
   return (
-    <div className="pointer-events-none absolute z-20 max-w-[260px] rounded-md border border-linestrong bg-elev/95 px-2.5 py-2 text-xs shadow-lg"
+    <div className="pointer-events-none absolute z-20 max-w-[260px] border border-linestrong border-l-2 border-l-signal2 bg-elev/95 px-2.5 py-2 text-xs shadow-lg"
       style={{ left: x + 14, top: y + 14 }} role="tooltip">
       {node && node.kind === 'more' && (
         <>

@@ -44,6 +44,34 @@ the remaining 5 are limited only by missing credentials (live verification), see
 | UX-1..5 | VERIFIED (automated) | index.css, components/ui.tsx | axe 0 (dark+light), keyboard spec; see docs/ACCESSIBILITY_AUDIT.md (manual AT testing not performed) |
 | OPS-1..5 | VERIFIED | README, scripts, migrations | — |
 
+## Visual transformation — editorial identity + the Tracers (2026-10-18, branch `claude/tracefuse-visual-redesign-f70a28`)
+Frontend-only; no API, data, scoring or provenance changes.
+- Design system (`src/index.css`, primitives in `@layer components` so Tailwind utilities win): obsidian/charcoal tokens, mint =
+  verified, cyan = active, violet = sourced intel, amber/ember = unresolved/warnings; Archivo (62–125 width) for two-tone display
+  headlines, Inter body, JetBrains Mono metadata; notched frames, boxed nav pills, label tabs. Light theme kept (UX-1).
+- Brand: `components/brand.tsx` (wordmark, two-tone headline, PageHead, sigils); `components/characters.tsx` + `cast.ts` —
+  six original cartoon characters ("the Tracers": Hexo, Docket, Knot, Snoop, Archie, Blocky), one per evidence colour; blink,
+  pointer gaze (`useCharacterGaze.ts`, rAF-throttled, off with reduced motion), idle bob/sway, hover hop. Decorative, aria-hidden.
+- Landing (`pages/Landing.tsx`, `features/landing/*`): scroll-scrubbed hero (video now scrubs over the hero only) with stamped
+  slab headline + characters; 02 pinned three.js sculpture of an illustrative seeded network splitting into branches
+  (`FragmentScene.tsx`, lazy `three` chunk, SVG fallback without WebGL); 03 scattered real Ronin clues drawn together;
+  04 exploding isometric planes (sources · ledger · hypotheses); "Every colour has a job" crew lineup (colour legend);
+  05 staggered capability plates with pointer tilt; manifesto with speed lines; 06 product reveal using a real screenshot of the
+  Ronin workspace (`public/media/tracefuse-workspace.jpg`, captured from the app); outlined-wordmark footer; tickers,
+  scroll progress bar, chapter rail (6 chapters, in a nav landmark).
+- App shell: sticky title strip with boxed nav pills; route + tab transitions. Workspace: compact case header with status chips,
+  views renamed (Money flow, Transfer matrix, Connected evidence, Priority leads, Sources & findings, Across blockchains,
+  Activity statistics) with tooltips; filters as a popover in the tab row.
+- 2D graph: hop-column bands, brand node shapes (square origin), round-taxi routes, zoom-aware labels. 3D: cube origin with orbit
+  ring, translucent hop discs, brand palette, restyled HUD. Matrix: sequential charcoal→mint→pale scale + reading guide.
+  Connected evidence: labels on hover/selection, provenance hover card, default shows transfers only between sourced entities.
+  Leads: ranked display numbers, meters, signal chips. Sources & findings: grouped by facts / source claims / hypotheses.
+  Across blockchains: per-link bridge schematic by status. Activity statistics: KPI strip, labelled axes/units.
+- ChronoReplay: compact; new **Milestones** pace (`features/workspace/milestones.ts`) steps through key moments picked from the
+  real events (first/last, largest per asset, busiest periods, activity after quiet periods) — reveals everything up to each
+  moment, removes nothing; transfer-by-transfer replay unchanged. Time window moved into a popover.
+- Tests updated: vitest landing test; e2e landing spec rewritten (6 chapters, hero-only scrub), tab names, time-window popover.
+
 ## One app, one command (2026-10-18)
 - `./run.sh` (repo root): creates `backend/.venv` / installs UI deps when missing, rebuilds `frontend/dist` only when UI sources are
   newer, then `exec`s uvicorn — landing, Investigation Room, media and `/api` on one port (default 127.0.0.1:8000).
@@ -84,6 +112,10 @@ the remaining 5 are limited only by missing credentials (live verification), see
 - Chapters: `features/landing/chapters.ts` (ids signal · fragmentation · disconnected · fusion · enter). Diagrams are labelled
   illustrative; chapter 03 uses public Ronin facts from `backend/data/cases/ronin-2022/labels.json`.
 - Fonts: Archivo (variable width) + JetBrains Mono via Google Fonts in `index.html`; system fallbacks if offline.
+
+## Last successful checks (2026-10-18, visual transformation — branch `claude/tracefuse-visual-redesign-f70a28`)
+backend: pytest 68 passed, 7 skipped (unchanged). frontend: tsc + oxlint clean · vitest **18 passed** (+2 milestones) · build OK ·
+Playwright `npm run e2e` **28 passed** (axe dark+light 0 violations, keyboard, reduced motion, responsive desktop + Pixel 7).
 
 ## Last successful checks (2026-10-18, finalization — branch `tracefuse-finalization`)
 backend: pytest 68 passed, 7 skipped (one-app pass; was 66) (opt-in live; 4 of them additionally credential-gated) · ruff clean · mypy clean.

@@ -4,7 +4,7 @@ import { api, apiUrl, qs } from '../lib/api'
 import { useApi, useInvestigation } from '../lib/hooks'
 import type { CaseDetail, GraphResponse, Investigation, ProgressEvent, TimelineResponse } from '../lib/types'
 import { fmtTime, ORIGIN_LABEL, short } from '../lib/format'
-import { ErrorBox, Spinner, Tabs, Toast } from '../components/ui'
+import { Copy, ErrorBox, Spinner, Tabs, Toast } from '../components/ui'
 import ProgressPanel from '../features/workspace/ProgressPanel'
 import FilterBar from '../features/workspace/FilterBar'
 import FlowWorkbench, { type ViewMode } from '../features/workspace/flow/FlowWorkbench'
@@ -98,33 +98,37 @@ function WorkspaceBody({ id, inv, events, refresh, caseId, caseData, initial }: 
   }, [caseData])
 
   return (
-    <div className="flex flex-col gap-3">
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    <div className="tf-ws">
+      <header className="tf-casehead">
         <div className="min-w-0">
-          <p className="text-xs text-faint">
-            {caseId && <><Link to={`/app/cases/${caseId}`} className="text-signal2 hover:underline">{caseData.data?.title ?? 'Case'}</Link> · </>}
-            Investigation {inv.id}
+          <p className="tf-kicker flex flex-wrap items-center gap-x-2">
+            <span className="tf-kicker-dot" aria-hidden />
+            {caseId && <><Link to={`/app/cases/${caseId}`} className="text-signal2 hover:underline">{caseData.data?.title ?? 'Case'}</Link><span aria-hidden>/</span></>}
+            <span>Investigation {inv.id}</span>
           </p>
-          <h1 className="flex flex-wrap items-baseline gap-x-2 text-lg">
-            <span className="font-semibold">{inv.seed_kind === 'tx_hash' ? 'Transaction' : 'Wallet'}</span>
-            <span className="mono break-all text-base text-dim">{inv.seed_value}</span>
+          <h1 className="tf-casehead-title">
+            <span className="tf-casehead-kind">{inv.seed_kind === 'tx_hash' ? 'Transaction' : 'Wallet'}</span>
+            <span className="mono tf-casehead-seed" title={inv.seed_value}>{inv.seed_value}</span>
+            <Copy text={inv.seed_value} />
           </h1>
         </div>
         {done && inv.status !== 'failed' && (
           <details className="relative" aria-label="Exports">
-            <summary className="tf-btn cursor-pointer list-none">Export ▾</summary>
-            <div className="absolute right-0 z-30 mt-1 flex w-52 flex-col gap-1 rounded-md border border-linestrong bg-elev p-2 shadow-lg">
+            <summary className="tf-btn tf-btn-primary cursor-pointer list-none">Export ▾</summary>
+            <div className="tf-menu right-0 flex w-56 flex-col gap-1">
+              <p className="tf-kicker px-1 pb-1">Report</p>
               <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/report.html`)} target="_blank" rel="noopener noreferrer">View report</a>
               <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/report.html?download=true`)}>HTML</a>
               <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/report.json`)}>JSON</a>
+              <p className="tf-kicker px-1 pt-2 pb-1">Data</p>
               <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/export/transfers.csv`)}>Transfers CSV</a>
               <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/export/scores.csv`)}>Scores CSV</a>
               <a className="tf-btn" href={apiUrl(`/api/investigations/${inv.id}/export/evidence.csv`)}>Evidence CSV</a>
             </div>
           </details>
         )}
+        <StatusStrip inv={inv} historical={inv.data_origin === 'historical_case'} />
       </header>
-      <StatusStrip inv={inv} historical={inv.data_origin === 'historical_case'} />
 
       {inv.status === 'failed' && <ErrorBox error={new Error(inv.error ?? 'Investigation failed')} onRetry={inv.data_origin === 'live' ? () => void api(`/api/investigations/${inv.id}/retry`, { method: 'POST' }).then((r) => { window.location.assign(`/app/investigations/${(r as { id: string }).id}`) }) : undefined} />}
 
@@ -132,21 +136,23 @@ function WorkspaceBody({ id, inv, events, refresh, caseId, caseData, initial }: 
 
       {done && inv.status !== 'failed' && (
         <>
-          <FilterBar filter={filter} setFilter={setFilter} assets={assets} />
           <ChronoReplay invId={inv.id} timeline={timeline.data} filter={filter} setFilter={setFilter} at={at} setAt={setAt}
             onSelectTransfer={(tid) => setSelection({ kind: 'transfers', ids: [tid], title: 'Replay transfer' })} />
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="tf-panel flex min-h-[calc(100vh-15rem)] flex-col overflow-hidden">
-              <Tabs label="Analysis views" value={tab} onChange={setTab} tabs={[
-                { id: 'graph', label: 'Fund flow', count: graph.data?.nodes.length },
-                { id: 'matrix', label: 'Transfer matrix' },
-                { id: 'fusion', label: 'Evidence fusion' },
-                { id: 'scores', label: 'Lead ranking' },
-                { id: 'evidence', label: 'Evidence' },
-                { id: 'crosschain', label: 'Cross-chain' },
-                { id: 'metrics', label: 'Flow patterns' },
-              ]} />
-              <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="min-h-0 flex-1">
+          <div className="tf-ws-grid">
+            <div className="tf-ws-main">
+              <div className="tf-ws-tabrow">
+                <Tabs label="Analysis views" value={tab} onChange={setTab} tabs={[
+                  { id: 'graph', label: 'Money flow', count: graph.data?.nodes.length, hint: 'How funds moved from the starting wallet, hop by hop' },
+                  { id: 'matrix', label: 'Transfer matrix', hint: 'Who sent to whom, as a heatmap' },
+                  { id: 'fusion', label: 'Connected evidence', hint: 'Wallets linked to sanctions entries, reports and repositories' },
+                  { id: 'scores', label: 'Priority leads', hint: 'Wallets ranked by an explainable heuristic score' },
+                  { id: 'evidence', label: 'Sources & findings', hint: 'Every source record, transaction fact and claim' },
+                  { id: 'crosschain', label: 'Across blockchains', hint: 'Bridge movements and candidate matches' },
+                  { id: 'metrics', label: 'Activity statistics', hint: 'Volumes, timing and flow patterns' },
+                ]} />
+                <FilterBar filter={filter} setFilter={setFilter} assets={assets} />
+              </div>
+              <div key={tab} role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="tf-panel-in min-h-0 flex-1">
                 {tab === 'graph' && (graph.error ? <ErrorBox error={graph.error} onRetry={graph.reload} /> : graph.data ? (
                   graph.data.stats.transfers > 0 ? <FlowWorkbench invId={inv.id} graph={graph.data} filter={filter} selection={selection} onSelect={onSelect}
                     onHide={onHide} visibleUntil={at} mode={view} onMode={setView} />
@@ -159,7 +165,7 @@ function WorkspaceBody({ id, inv, events, refresh, caseId, caseData, initial }: 
                 {tab === 'metrics' && <MetricsView invId={inv.id} filter={filter} assets={assets} timeline={timeline.data} onSelect={onSelect} />}
               </div>
             </div>
-            <aside className="tf-panel max-h-[calc(100vh-2rem)] overflow-auto xl:sticky xl:top-4" aria-label="Inspector">
+            <aside className="tf-ws-inspector" aria-label="Inspector">
               <Inspector invId={inv.id} caseId={caseId} filter={filter} selection={selection} onSelect={onSelect} onHide={onHide} reviews={reviews} onCaseChanged={onCaseChanged} />
             </aside>
           </div>
@@ -183,26 +189,28 @@ function announce(s: Selection): string {
 function StatusStrip({ inv, historical }: { inv: Investigation; historical: boolean }) {
   const dir = inv.config.direction === 'forward' ? 'Following funds out' : inv.config.direction === 'backward' ? 'Following funds in' : 'Following funds both ways'
   const state = inv.status === 'completed' ? 'Analysis complete' : inv.status === 'partial' ? 'Partial result' : inv.status === 'failed' ? 'Failed' : inv.status === 'cancelled' ? 'Cancelled' : 'Analysing…'
-  const tone = inv.status === 'completed' ? 'bg-ok' : inv.status === 'partial' ? 'bg-hypo' : inv.status === 'failed' ? 'bg-danger' : 'bg-signal'
+  const tone = inv.status === 'completed' ? 'var(--ok)' : inv.status === 'partial' ? 'var(--hypo)' : inv.status === 'failed' ? 'var(--danger)' : 'var(--signal-2)'
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-line bg-panel px-3 py-1.5 text-xs" role="group" aria-label="Investigation status">
-      <span className="flex items-center gap-1.5"><span className={`inline-block h-2 w-2 rounded-full ${tone}`} aria-hidden /><strong>{state}</strong>
-        </span>
+    <div className="tf-chips" role="group" aria-label="Investigation status">
+      <span className="tf-chip"><span className="tf-chip-dot" style={{ background: tone }} aria-hidden /><strong>{state}</strong></span>
+      <span className="tf-chip"><span className="tf-chip-k">Chain</span> {inv.chain}</span>
+      <span className="tf-chip" title={historical ? 'Recorded real provider responses replayed through the live pipeline — not a live query' : undefined}>
+        <span className="tf-chip-k">Data</span>
+        {historical ? <><span className="text-hypo">Historical case (recorded)</span><span className="text-faint"> — recorded real provider responses, replayed</span></> : ORIGIN_LABEL[inv.data_origin] ?? inv.data_origin}
+        {inv.provider && <span className="text-faint"> via {inv.provider}</span>}
+      </span>
+      <span className="tf-chip" title={`${dir} · up to ${inv.config.max_hops} hops · ${inv.config.max_branching} branches per wallet`}>
+        <span className="tf-chip-k">Scope</span> {dir} · {inv.config.max_hops} hops · {inv.config.max_branching}/wallet
+      </span>
+      {inv.finished_at && <span className="tf-chip"><span className="tf-chip-k">Finished</span> {fmtTime(inv.finished_at)}</span>}
       {inv.warnings.length > 0 && (
         <details className="relative">
-          <summary className="cursor-pointer text-hypo">{inv.warnings.length} warning{inv.warnings.length === 1 ? '' : 's'} ▾</summary>
-          <ul className="absolute left-0 z-30 mt-1 w-[min(36rem,80vw)] list-disc space-y-1 rounded-md border border-hypo/40 bg-elev p-3 pl-6 text-dim shadow-lg">
+          <summary className="tf-chip cursor-pointer list-none text-hypo">{inv.warnings.length} warning{inv.warnings.length === 1 ? '' : 's'} ▾</summary>
+          <ul className="tf-menu left-0 w-[min(36rem,80vw)] list-disc space-y-1 border-hypo/40 pl-6 text-xs text-dim">
             {inv.warnings.map((w) => <li key={w}>{w}</li>)}
           </ul>
         </details>
       )}
-      <span><span className="text-faint">Chain</span> {inv.chain}</span>
-      <span title={historical ? 'Recorded real provider responses replayed through the live pipeline — not a live query' : undefined}>
-        <span className="text-faint">Data</span> {historical ? <><span className="text-hypo">Historical case (recorded)</span><span className="text-dim"> — recorded real provider responses, replayed</span></> : ORIGIN_LABEL[inv.data_origin] ?? inv.data_origin}
-        {inv.provider && <span className="text-faint"> via {inv.provider}</span>}
-      </span>
-      <span><span className="text-faint">Scope</span> {dir} · up to {inv.config.max_hops} hops · {inv.config.max_branching} branches per wallet</span>
-      {inv.finished_at && <span><span className="text-faint">Finished</span> {fmtTime(inv.finished_at)}</span>}
     </div>
   )
 }

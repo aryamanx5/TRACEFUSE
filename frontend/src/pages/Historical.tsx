@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { useApi } from '../lib/hooks'
 import { ErrorBox, ExtLink, Section, Spinner } from '../components/ui'
 import { fmtTime } from '../lib/format'
+import { PageHead } from '../components/brand'
 
 interface HistCase {
   key: string
@@ -37,8 +38,7 @@ export default function Historical() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <h1 className="text-2xl font-semibold">Historical case</h1>
-      <p className="text-dim">A genuine, documented incident. Real public API responses were recorded once and are replayed through the same adapters, analysis and reporting code as live investigations — clearly labelled as historical.</p>
+      <PageHead mascot="blocky" kicker="Recorded real incident" title="Historical case" lede="A genuine, documented incident. Real public API responses were recorded once and are replayed through the same adapters, analysis and reporting code as live investigations — clearly labelled as historical." />
       {loading && <Spinner />}
       <ErrorBox error={error ?? err} onRetry={reload} />
       {data?.map((c) => (

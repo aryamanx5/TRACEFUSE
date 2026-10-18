@@ -15,6 +15,7 @@ export default defineConfig({
       output: {
         manualChunks(id: string) {
           if (id.includes('node_modules/cytoscape')) return 'cytoscape'
+          if (id.includes('node_modules/three')) return 'three'
           if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) return 'recharts'
           if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion')) return 'motion'
           return undefined

@@ -33,14 +33,14 @@ export async function openHistoricalCase(page: Page): Promise<string> {
   await page.getByRole('button', { name: 'Open case in workspace' }).click()
   await page.waitForURL(/\/app\/investigations\/inv_/)
   // loading state: real backend progress events stream while the replay runs (or it finishes immediately)
-  await expect(page.getByRole('tab', { name: /Fund flow/ })).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByRole('tab', { name: /Money flow/ })).toBeVisible({ timeout: 60_000 })
   await expect(page.getByText('Historical case (recorded)', { exact: true })).toBeVisible()
   return page.url().split('/').pop()!
 }
 
 /** Select a wallet through the accessible graph search (the graph itself is a canvas). */
 export async function selectWallet(page: Page, address: string) {
-  await page.getByRole('tab', { name: /Fund flow/ }).click()
+  await page.getByRole('tab', { name: /Money flow/ }).click()
   await page.getByLabel('Search graph').fill(address)
   await page.getByRole('button', { name: 'Find' }).click()
   const inspector = page.getByRole('complementary', { name: 'Inspector' })

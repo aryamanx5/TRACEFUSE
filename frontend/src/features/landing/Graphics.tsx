@@ -1,7 +1,7 @@
 import { motion, useTransform, type MotionValue } from 'framer-motion'
 
 /*
- * Explanatory diagrams for the landing story. Positions are hand-placed and illustrative:
+ * Fallback diagram for chapter 02 when WebGL is unavailable. Positions are hand-placed and illustrative:
  * nothing here is read from an investigation, and each figure says so in its caption.
  */
 
@@ -29,8 +29,8 @@ export function FlowGraphic({ progress, reduced }: { progress: MotionValue<numbe
       {edges.map((e, i) => (
         <Edge key={i} {...e} progress={progress} reduced={reduced} />
       ))}
-      <circle cx={SRC.x} cy={SRC.y} r={9} fill="var(--tfl-teal)" />
-      <circle cx={SRC.x} cy={SRC.y} r={16} fill="none" stroke="var(--tfl-teal)" strokeOpacity={0.4} />
+      <rect x={SRC.x - 9} y={SRC.y - 9} width={18} height={18} fill="var(--tfl-teal)" />
+      <rect x={SRC.x - 15} y={SRC.y - 15} width={30} height={30} fill="none" stroke="var(--tfl-teal)" strokeOpacity={0.4} />
       <text x={SRC.x - 6} y={SRC.y + 34} className="tfl-svg-label">source wallet</text>
     </svg>
   )
@@ -55,76 +55,8 @@ function Edge({ a, b, at, depth, progress, reduced }: {
       <motion.path d={d} fill="none" stroke={stroke} strokeWidth={depth === 1 ? 1.6 : 1.1} style={reduced ? undefined : { pathLength: len }} />
       <motion.g style={reduced ? undefined : { opacity: show }}>
         <polygon points={`${tip},${b.y} ${ax + nx},${ay + ny} ${ax - nx},${ay - ny}`} fill={stroke} />
-        <circle cx={b.x} cy={b.y} r={r} fill="var(--tfl-bg)" stroke={stroke} strokeWidth={1.4} />
+        <rect x={b.x - r} y={b.y - r} width={r * 2} height={r * 2} fill="var(--tfl-bg)" stroke={stroke} strokeWidth={1.4} />
       </motion.g>
     </g>
-  )
-}
-
-const LEDGER: (P & { t: string })[] = [
-  { x: 40, y: 56, t: 'wallet A' }, { x: 185, y: 56, t: 'wallet B' }, { x: 330, y: 56, t: 'wallet C' }, { x: 475, y: 56, t: 'wallet D' },
-]
-const SOURCES: (P & { t: string })[] = [
-  { x: 70, y: 190, t: 'Sanctions list' }, { x: 262, y: 190, t: 'Incident report' }, { x: 450, y: 190, t: 'Repository post' },
-]
-const LINKS: { s: number; n: number; kind: 'assert' | 'hypo'; at: number }[] = [
-  { s: 0, n: 0, kind: 'assert', at: 0.32 },
-  { s: 1, n: 1, kind: 'assert', at: 0.36 },
-  { s: 2, n: 3, kind: 'hypo', at: 0.44 },
-]
-
-/** Chapter 04 — the three kinds of connection, revealed in order: ledger fact, cited assertion, hypothesis. */
-export function FusionGraphic({ progress, reduced }: { progress: MotionValue<number>; reduced: boolean }) {
-  return (
-    <svg viewBox="0 0 520 222" className="tfl-graphic" aria-hidden focusable="false">
-      {LEDGER.slice(1).map((n, i) => (
-        <Link key={`v${i}`} d={`M${LEDGER[i].x + 9},${n.y} L${n.x - 12},${n.y}`} kind="verified" at={0.18 + i * 0.04} progress={progress} reduced={reduced} arrow={{ x: n.x - 10, y: n.y }} />
-      ))}
-      {LINKS.map((l, i) => {
-        const s = SOURCES[l.s]
-        const n = LEDGER[l.n]
-        return (
-          <Link key={`l${i}`} d={`M${s.x},${s.y - 18} C${s.x},${(s.y + n.y) / 2} ${n.x},${(s.y + n.y) / 2} ${n.x},${n.y + 12}`}
-            kind={l.kind} at={l.at} progress={progress} reduced={reduced} />
-        )
-      })}
-      {LEDGER.map((n) => (
-        <g key={n.t}>
-          <circle cx={n.x} cy={n.y} r={8} fill="var(--tfl-bg)" stroke="var(--tfl-teal)" strokeWidth={1.8} />
-          <text x={n.x} y={n.y - 18} textAnchor="middle" className="tfl-svg-label">{n.t}</text>
-        </g>
-      ))}
-      {SOURCES.map((s) => (
-        <g key={s.t}>
-          <rect x={s.x - 62} y={s.y - 17} width={124} height={34} fill="var(--tfl-panel)" />
-          <text x={s.x} y={s.y + 4} textAnchor="middle" className="tfl-svg-label tfl-svg-ink">{s.t}</text>
-        </g>
-      ))}
-    </svg>
-  )
-}
-
-function Link({ d, kind, at, progress, reduced, arrow }: {
-  d: string; kind: 'verified' | 'assert' | 'hypo'; at: number; progress: MotionValue<number>; reduced: boolean; arrow?: P
-}) {
-  const opacity = useTransform(progress, [at, at + 0.06], [0, 1])
-  const stroke = kind === 'verified' ? 'var(--tfl-teal)' : kind === 'assert' ? 'var(--tfl-ink)' : 'var(--tfl-rust)'
-  const dash = kind === 'verified' ? undefined : kind === 'assert' ? '7 5' : '2 5'
-  return (
-    <motion.g style={reduced ? undefined : { opacity }}>
-      <path d={d} fill="none" stroke={stroke} strokeWidth={kind === 'verified' ? 2 : 1.6} strokeDasharray={dash} strokeLinecap="round" />
-      {arrow && <polygon points={`${arrow.x},${arrow.y} ${arrow.x - 8},${arrow.y - 4.5} ${arrow.x - 8},${arrow.y + 4.5}`} fill={stroke} />}
-    </motion.g>
-  )
-}
-
-/** Legend for the fusion diagram — real text, so it is read out and stays legible without the drawing. */
-export function FusionLegend() {
-  return (
-    <ul className="tfl-legend">
-      <li><svg viewBox="0 0 28 6" aria-hidden><line x1="0" y1="3" x2="28" y2="3" stroke="var(--tfl-teal)" strokeWidth="2" /></svg>Verified on-chain transfer</li>
-      <li><svg viewBox="0 0 28 6" aria-hidden><line x1="0" y1="3" x2="28" y2="3" stroke="var(--tfl-ink)" strokeWidth="1.6" strokeDasharray="7 5" /></svg>Assertion, cited to its source</li>
-      <li><svg viewBox="0 0 28 6" aria-hidden><line x1="1" y1="3" x2="28" y2="3" stroke="var(--tfl-rust)" strokeWidth="1.6" strokeDasharray="2 5" strokeLinecap="round" /></svg>Hypothesis, not yet confirmed</li>
-    </ul>
   )
 }
