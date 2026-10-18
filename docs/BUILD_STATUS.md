@@ -7,9 +7,11 @@ Status values: NOT_STARTED · IN_PROGRESS · IMPLEMENTED · TESTED · BLOCKED ·
 2. Backend venv: `backend/.venv` (already has deps). Run `cd backend && .venv/bin/pytest -q`.
 3. Continue with the first row below that is not TESTED/VERIFIED.
 
-## Canonical version (decided 2026-10-18)
-`main` is the final prototype: cinematic landing page + Investigation Room (layered 2D fund flow, interactive 3D network,
-stable ChronoReplay) + one-command single-port app (`./run.sh`). Start every new session from `main`.
+## Canonical version (decided 2026-10-18, updated after the visual transformation)
+`main` is the final prototype for every chat: editorial TRACEFUSE identity with the Tracers cast, cinematic landing, redesigned
+Investigation Room (2D fund flow, interactive 3D network, Milestones replay) + one-command single-port app (`./run.sh`).
+It includes the visual-transformation work from `claude/tracefuse-visual-redesign-f70a28` (fast-forwarded into `main`).
+Start every new session from `main`.
 - Superseded, not merged: `claude/investigation-workspace-redesign-850214` (an earlier, parallel workspace redesign). Do not build on it.
 - Run it: `./run.sh` → http://127.0.0.1:8000 (`--port N` if 8000 is taken, `--offline` for no live provider calls).
 
